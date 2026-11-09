@@ -22,3 +22,7 @@ build/
 
 # Generated localizations
 lib/l10n/gen/
+
+# Flutter build artifacts (missed by template)
+.dart_tool/
+.flutter-plugins-dependencies
