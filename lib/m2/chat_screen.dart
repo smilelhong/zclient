@@ -169,6 +169,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           ],
                         ),
                       ),
+                      // 停止按钮: turn running → stop icon in the top bar.
+                      if (_isRunning(st) && s.sessionId != null)
+                        IconButton(
+                          tooltip: '停止',
+                          icon: Icon(Icons.stop_circle_outlined,
+                              size: 22, color: scheme.error),
+                          onPressed: () =>
+                              ctrl.stopSession(s.sessionId!),
+                        ),
                     ],
                   ),
                 ),
@@ -249,6 +258,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       }
     }
     return t.phase_idle;
+  }
+
+  static bool _isRunning(ConversationState st) {
+    for (final row in st.rows.reversed) {
+      if (row['kind'] == 'turnHeader') {
+        final state = '${row['state'] ?? ''}';
+        return state == 'running' || state == 'prewarming';
+      }
+    }
+    return false;
   }
 }
 
@@ -728,6 +747,51 @@ class _InteractionCard extends StatelessWidget {
     final id = '${interaction['interactionId'] ?? ''}';
     final title = '${p['title'] ?? p['prompt'] ?? p['message'] ?? '等待确认'}';
     final options = p['options'] is List ? p['options'] as List : const [];
+
+    // Plan approval (parity #10): rides the userInput channel with
+    // toolName exitplanmode; render its options like a confirm card.
+    final isPlanApproval = p['kind'] == 'userInput' &&
+        ('${p['toolName'] ?? ''}'.toLowerCase() == 'exitplanmode' ||
+            (p['schema'] is Map &&
+                '${(p['schema'] as Map)['interaction'] ?? ''}' ==
+                    'plan_approval'));
+    if (isPlanApproval) {
+      final planOptions = p['options'] is List
+          ? p['options'] as List
+          : (p['schema'] is Map && (p['schema'] as Map)['options'] is List)
+              ? (p['schema'] as Map)['options'] as List
+              : const [];
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title.isEmpty ? '计划确认' : title,
+              style: const TextStyle(fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Wrap(
+              spacing: 8,
+              children: [
+                for (final opt in planOptions)
+                  if (opt is Map)
+                    OutlinedButton(
+                      onPressed: () => ctrl.resolveInteraction(
+                          id,
+                          optionId:
+                              '${opt['id'] ?? opt['optionId'] ?? ''}'),
+                      child: Text('${opt['label'] ?? opt['name'] ?? '...'}'),
+                    ),
+                if (planOptions.isEmpty)
+                  FilledButton(
+                    onPressed: () => ctrl.resolveInteraction(id),
+                    child: const Text('同意计划'),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
 
     if ('${p['kind']}' == 'workspaceHookReview') {
       return Column(

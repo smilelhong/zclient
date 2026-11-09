@@ -9,6 +9,7 @@ import '../auth/session_auth.dart';
 import '../protocol/connection_params.dart';
 import '../protocol/conversation.dart';
 import '../protocol/remote_client.dart';
+import '../protocol/task_commands.dart';
 import '../state/app_kv.dart';
 import '../state/device_store.dart';
 
@@ -86,10 +87,12 @@ class M1Controller extends Notifier<M1State> {
   ConversationTransport? _conv;
   ConversationSubscription? _sub;
   SessionsIndexSubscription? _indexSub;
+  TaskCommandsPort? _tasks;
 
   static const loginHost = 'zcode.z.ai';
   static const _linkKey = 'zc.pairing.link';
-  static const _sessionKey = 'zc.session.id';
+
+  String _sessionKeyFor(String sid) => 'zc.session.$sid';
 
   DeviceStore get _store => DeviceStore.instance;
 
@@ -165,6 +168,7 @@ class M1Controller extends Notifier<M1State> {
   Future<void> disconnect() async {
     _indexSub?.dispose();
     _indexSub = null;
+    _tasks = null;
     _sub?.dispose();
     _sub = null;
     _conv = null;
@@ -182,6 +186,72 @@ class M1Controller extends Notifier<M1State> {
   }
 
   // ------------------------------------------------------------ sessions
+
+  /// Task metadata ops (rename/pin/archive/unread/delete) on the
+  /// zcode-task channel via the vendored probe port.
+  TaskCommandsPort? get _taskPort {
+    if (_tasks != null) return _tasks;
+    final bridge = _bridge;
+    final conv = _conv;
+    if (bridge == null || conv == null) return null;
+    _tasks = TaskCommandsPort(
+      (method, args) => bridge.channels.call('zcode-task', method, args),
+      scope: () => conv.scope,
+    );
+    return _tasks;
+  }
+
+  Future<void> renameSession(String sessionId, String title) async {
+    try {
+      await _taskPort?.rename(sessionId, title).timeout(
+            const Duration(seconds: 15),
+          );
+      _log('✓ 已重命名');
+    } catch (e) {
+      _log('✗ 重命名失败: $e');
+    }
+  }
+
+  Future<void> setSessionPinned(String sessionId, bool pinned) async {
+    try {
+      await _taskPort?.setPinned(sessionId, pinned).timeout(
+            const Duration(seconds: 15),
+          );
+      _log('✓ ${pinned ? '已置顶' : '已取消置顶'}');
+    } catch (e) {
+      _log('✗ 置顶失败: $e');
+    }
+  }
+
+  Future<void> deleteSession(String sessionId) async {
+    try {
+      await _taskPort?.delete(sessionId).timeout(
+            const Duration(seconds: 15),
+          );
+      _log('✓ 已删除会话');
+      if (state.sessionId == sessionId) {
+        // The chat subscription died with it; drop to index-only until the
+        // user picks (or we create) the next one.
+        _sub?.dispose();
+        _sub = null;
+        state = state.copyWith(clearSession: true);
+      }
+    } catch (e) {
+      _log('✗ 删除失败: $e');
+    }
+  }
+
+  /// Stops the running turn (chat 停止 button / session sheet).
+  Future<void> stopSession(String sessionId) async {
+    final conv = _conv;
+    if (conv == null) return;
+    try {
+      await conv.stop(sessionId).timeout(const Duration(seconds: 15));
+      _log('✓ 已停止');
+    } catch (e) {
+      _log('✗ 停止失败: $e');
+    }
+  }
 
   /// Subscribes the workspace sessions index after the chat transport is
   /// ready; every index frame bumps [M1State.sessionsTick].
@@ -219,11 +289,14 @@ class M1Controller extends Notifier<M1State> {
       sub.state.addListener(_onRows);
       _onRows();
       state = state.copyWith(sessionId: sessionId);
-      unawaited(() async {
-        try {
-          await AppKv.instance.setString(_sessionKey, sessionId);
-        } catch (_) {}
-      }());
+      final devSid = state.params?.deviceSid;
+      if (devSid != null) {
+        unawaited(() async {
+          try {
+            await AppKv.instance.setString(_sessionKeyFor(devSid), sessionId);
+          } catch (_) {}
+        }());
+      }
       _log('切换会话: $sessionId');
     } catch (e) {
       _log('✗ 切换会话失败: $e');
@@ -293,7 +366,8 @@ class M1Controller extends Notifier<M1State> {
     _log('未登录（$loginHost 无 JWT）');
   }
 
-  Future<void> onLoginHarvested(String host, String jwt) async {
+  Future<void> onLoginHarvested(String host, String jwt,
+      {String? cookieHeader}) async {
     // Harvest-time validation (parity item #1): a mint the relay rejects
     // later is a broken login — prove the JWT can mint BEFORE saving it,
     // so a half-finished SSO state can never reach the pairing flow
@@ -305,6 +379,11 @@ class M1Controller extends Notifier<M1State> {
         jwt: jwt,
       ).timeout(const Duration(seconds: 15));
       await sessionAuth.saveJwt(host, jwt);
+      if (cookieHeader != null && cookieHeader.isNotEmpty) {
+        try {
+          await sessionAuth.saveCookies(host, cookieHeader);
+        } catch (_) {}
+      }
       state = state.copyWith(jwtHost: host, clearError: true);
       _log('✓ 登录凭证可用，已保存（$host）');
       _logJwtHint(jwt);
@@ -485,11 +564,12 @@ class M1Controller extends Notifier<M1State> {
       final workspaceId = _chatWorkspaceId(workspace);
       _log('workspaceId=$workspaceId');
 
-      // Resume the last session when one exists (re-entering the app lands
-      // back in the same conversation); otherwise create a fresh empty one.
+      // Per-device session memory (parity #6): each paired desktop resumes
+      // ITS own last conversation — switching devices never crosses chats.
+      final deviceKey = _sessionKeyFor(params.deviceSid);
       String? savedSid;
       try {
-        savedSid = await AppKv.instance.getString(_sessionKey);
+        savedSid = await AppKv.instance.getString(deviceKey);
       } catch (_) {}
       ConversationSubscription? sub;
       var sessionId = '';
@@ -515,7 +595,7 @@ class M1Controller extends Notifier<M1State> {
       }
       unawaited(() async {
         try {
-          await AppKv.instance.setString(_sessionKey, sessionId);
+          await AppKv.instance.setString(deviceKey, sessionId);
         } catch (_) {}
       }());
       _sub = sub;

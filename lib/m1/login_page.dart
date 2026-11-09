@@ -11,7 +11,8 @@ class M1LoginPage extends StatefulWidget {
   const M1LoginPage({super.key, required this.host, required this.onHarvested});
 
   final String host;
-  final void Function(String host, String jwt) onHarvested;
+  final void Function(String host, String jwt, {String? cookieHeader})
+      onHarvested;
 
   @override
   State<M1LoginPage> createState() => _M1LoginPageState();
@@ -22,7 +23,8 @@ class _M1LoginPageState extends State<M1LoginPage> {
 (function () {
   try {
     return JSON.stringify({
-      zcodejwttoken: localStorage.getItem('zcodejwttoken') || ''
+      zcodejwttoken: localStorage.getItem('zcodejwttoken') || '',
+      cookie: document.cookie || ''
     });
   } catch (e) {
     return '';
@@ -121,12 +123,19 @@ class _M1LoginPageState extends State<M1LoginPage> {
     return jwtFromStorageProbe(raw);
   }
 
-  void _capture() {
+  void _capture() async {
     final jwt = _candidateJwt;
     if (jwt == null || jwt.isEmpty || _captured) return;
     _captured = true;
     _harvestTimer?.cancel();
-    widget.onHarvested(widget.host, jwt);
+    // Persist the domain cookies too (zic parity): they back the JWT for
+    // hosts where the web client relies on session cookies.
+    String? cookie;
+    try {
+      final raw = await _controller.runJavaScriptReturningResult('document.cookie || ""');
+      if (raw is String && raw.isNotEmpty) cookie = raw;
+    } catch (_) {}
+    widget.onHarvested(widget.host, jwt, cookieHeader: cookie);
     if (mounted) Navigator.of(context).pop(true);
   }
 

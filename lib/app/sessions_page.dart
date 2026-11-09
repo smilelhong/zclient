@@ -23,6 +23,74 @@ class SessionsPage extends ConsumerStatefulWidget {
 class _SessionsPageState extends ConsumerState<SessionsPage> {
   String _filter = 'all';
 
+  /// Long-press action sheet per session (parity #7).
+  Future<void> _sessionSheet(
+      BuildContext context, M1Controller ctrl, SessionEntry e) async {
+    final running = e.phase == 'running' || e.phase == 'prewarming';
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.drive_file_rename_outline),
+              title: const Text('重命名'),
+              onTap: () => Navigator.pop(ctx, 'rename'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.push_pin_outlined),
+              title: const Text('置顶 / 取消置顶'),
+              onTap: () => Navigator.pop(ctx, 'pin'),
+            ),
+            if (running)
+              ListTile(
+                leading: const Icon(Icons.stop_circle_outlined),
+                title: const Text('停止运行'),
+                onTap: () => Navigator.pop(ctx, 'stop'),
+              ),
+            ListTile(
+              leading: Icon(Icons.delete_outline,
+                  color: Theme.of(ctx).colorScheme.error),
+              title: Text('删除会话',
+                  style:
+                      TextStyle(color: Theme.of(ctx).colorScheme.error)),
+              onTap: () => Navigator.pop(ctx, 'delete'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (action == null || !context.mounted) return;
+    switch (action) {
+      case 'rename':
+        final ctrlText = TextEditingController(text: e.title);
+        final name = await showDialog<String>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('重命名会话'),
+            content: TextField(controller: ctrlText, autofocus: true),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, ctrlText.text.trim()),
+                child: const Text('保存'),
+              ),
+            ],
+          ),
+        );
+        if (name != null && name.isNotEmpty) await ctrl.renameSession(e.sessionId, name);
+      case 'pin':
+        await ctrl.setSessionPinned(e.sessionId, true);
+      case 'stop':
+        await ctrl.stopSession(e.sessionId);
+      case 'delete':
+        await ctrl.deleteSession(e.sessionId);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
@@ -153,6 +221,8 @@ class _SessionsPageState extends ConsumerState<SessionsPage> {
                                       );
                                     }
                                   },
+                                  onLongPress: () =>
+                                      _sessionSheet(context, ctrl, e),
                                 ),
                               ),
                             );
