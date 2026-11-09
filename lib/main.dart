@@ -7,6 +7,7 @@ import 'l10n/gen/app_localizations.dart';
 import 'm1/login_page.dart';
 import 'm1/relay_service.dart';
 import 'm1/scan_page.dart';
+import 'm2/chat_screen.dart';
 
 void main() {
   runApp(const ProviderScope(child: ZClientApp()));
@@ -38,14 +39,33 @@ class ZClientApp extends StatelessWidget {
   }
 }
 
-class M1ConsolePage extends ConsumerWidget {
+class M1ConsolePage extends ConsumerStatefulWidget {
   const M1ConsolePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<M1ConsolePage> createState() => _M1ConsolePageState();
+}
+
+class _M1ConsolePageState extends ConsumerState<M1ConsolePage> {
+  bool _chatOpened = false;
+
+  @override
+  Widget build(BuildContext context) {
     final s = ref.watch(m1Provider);
     final ctrl = ref.read(m1Provider.notifier);
     final t = AppLocalizations.of(context);
+
+    // Auto-enter the chat screen once the protocol chain reaches ready.
+    if (s.phase == 'ready' && !_chatOpened) {
+      _chatOpened = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const ChatScreen()),
+        );
+      });
+    } else if (s.phase != 'ready') {
+      _chatOpened = false;
+    }
     final phaseLabel = switch (s.phase) {
       'connecting' => t.phase_connecting,
       'paired' => t.phase_paired,

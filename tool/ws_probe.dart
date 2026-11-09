@@ -7,6 +7,8 @@
 //   nomid — dial without the mid query param (fresh-pairing hypothesis)
 //   delay — wait 2s between mint and dial (token-liveness race)
 
+// ignore_for_file: avoid_print
+
 import 'dart:async';
 import 'dart:convert';
 

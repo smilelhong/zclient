@@ -9,6 +9,7 @@ import '../auth/session_auth.dart';
 import '../protocol/connection_params.dart';
 import '../protocol/conversation.dart';
 import '../protocol/remote_client.dart';
+import '../state/app_kv.dart';
 
 /// M1 protocol console state — deliberately raw: this milestone is about
 /// proving the vendored protocol path end to end, not about UI.
@@ -74,6 +75,8 @@ class M1Controller extends Notifier<M1State> {
   ConversationSubscription? _sub;
 
   static const loginHost = 'zcode.z.ai';
+  static const _linkKey = 'zc.pairing.link';
+  static const _sessionKey = 'zc.session.id';
 
   @override
   M1State build() {
@@ -82,8 +85,26 @@ class M1Controller extends Notifier<M1State> {
       _bridge?.dispose();
       _client?.dispose();
     });
-    unawaited(_checkJwt());
+    unawaited(_restoreSession());
     return const M1State();
+  }
+
+  /// Restores the persisted pairing link and, when a login exists for its
+  /// host, reconnects automatically so re-entering the app lands straight
+  /// back in the session.
+  Future<void> _restoreSession() async {
+    await _checkJwt();
+    if (state.jwtHost == null) return;
+    String? link;
+    try {
+      link = await AppKv.instance.getString(_linkKey);
+    } catch (_) {
+      return;
+    }
+    if (link == null || link.isEmpty) return;
+    if (!setLink(link, persist: false)) return;
+    _log('恢复上次配对，自动重连…');
+    await connect();
   }
 
   void _log(String line) {
@@ -99,17 +120,28 @@ class M1Controller extends Notifier<M1State> {
   }
 
   Future<void> _checkJwt() async {
-    try {
-      final jwt = await sessionAuth.jwtFor(loginHost);
-      if (jwt != null && jwt.isNotEmpty) {
-        state = state.copyWith(jwtHost: loginHost);
-        _log('已保存的登录：$loginHost');
-      } else {
-        _log('未登录（$loginHost 无 JWT）');
+    for (var attempt = 0; attempt < 3; attempt++) {
+      try {
+        final jwt = await sessionAuth.jwtFor(loginHost);
+        if (jwt != null && jwt.isNotEmpty) {
+          state = state.copyWith(jwtHost: loginHost);
+          _log('已保存的登录：$loginHost');
+          return;
+        }
+      } catch (e) {
+        _log('检查登录失败: $e');
+        return;
       }
-    } catch (e) {
-      _log('检查登录失败: $e');
+      // Right after an install the first launch can stall the platform
+      // thread past AppKv's 3s filesDir-channel timeout, leaving the store
+      // degraded with a cached failed open (open() short-circuits on the
+      // cached future). Force a clean reopen before giving up.
+      // ignore: invalid_use_of_visible_for_testing_member
+      AppKv.instance.debugReset();
+      await Future<void>.delayed(const Duration(milliseconds: 800));
+      await AppKv.instance.open();
     }
+    _log('未登录（$loginHost 无 JWT）');
   }
 
   Future<void> onLoginHarvested(String host, String jwt) async {
@@ -147,7 +179,7 @@ class M1Controller extends Notifier<M1State> {
   }
 
   /// Accepts a pasted or scanned pairing link.
-  bool setLink(String raw) {
+  bool setLink(String raw, {bool persist = true}) {
     final params = RemoteConnectionParams.parse(raw);
     if (params == null) {
       _log('配对链接无法解析: ${raw.length > 80 ? '${raw.substring(0, 80)}…' : raw}');
@@ -156,6 +188,13 @@ class M1Controller extends Notifier<M1State> {
     state = state.copyWith(linkUrl: raw, params: params, clearSession: true);
     _log('链接 OK · v${params.passHash.isEmpty ? 4 : 3} · sid=${params.deviceSid}'
         '${params.deviceName != null ? ' · ${params.deviceName}' : ''}');
+    if (persist) {
+      unawaited(() async {
+        try {
+          await AppKv.instance.setString(_linkKey, raw.trim());
+        } catch (_) {}
+      }());
+    }
     return true;
   }
 
@@ -249,19 +288,45 @@ class M1Controller extends Notifier<M1State> {
 
       final workspaceId = _chatWorkspaceId(workspace);
       _log('workspaceId=$workspaceId');
-      final sessionId = await conv
-          .createSession(workspaceId, firstText: '你好，这是 ZClient M1 的第一条消息。')
-          .timeout(const Duration(seconds: 30));
-      _log('✓ 会话已创建: $sessionId');
 
-      final sub = await conv.subscribe(sessionId).timeout(
-            const Duration(seconds: 20),
-          );
+      // Resume the last session when one exists (re-entering the app lands
+      // back in the same conversation); otherwise create a fresh empty one.
+      String? savedSid;
+      try {
+        savedSid = await AppKv.instance.getString(_sessionKey);
+      } catch (_) {}
+      ConversationSubscription? sub;
+      var sessionId = '';
+      if (savedSid != null && savedSid.isNotEmpty) {
+        try {
+          sub = await conv.subscribe(savedSid).timeout(
+                const Duration(seconds: 20),
+              );
+          sessionId = savedSid;
+          _log('✓ 恢复上次会话: $sessionId');
+        } catch (_) {
+          sub = null;
+        }
+      }
+      if (sub == null) {
+        sessionId = await conv.createSession(workspaceId).timeout(
+              const Duration(seconds: 30),
+            );
+        _log('✓ 会话已创建: $sessionId');
+        sub = await conv.subscribe(sessionId).timeout(
+              const Duration(seconds: 20),
+            );
+      }
+      unawaited(() async {
+        try {
+          await AppKv.instance.setString(_sessionKey, sessionId);
+        } catch (_) {}
+      }());
       _sub = sub;
       sub.state.addListener(_onRows);
       _onRows();
       state = state.copyWith(phase: 'ready', sessionId: sessionId);
-      _log('✓ M1 READY — 可以发送消息');
+      _log('✓ M2 READY — 会话就绪');
     } on RelayTokenException catch (e) {
       state = state.copyWith(phase: 'error', error: '${e.reason}: ${e.message}');
       _log('✗ ${e.reason}: ${e.message}');
@@ -336,6 +401,125 @@ class M1Controller extends Notifier<M1State> {
       _log('✗ 发送失败: $e');
     } finally {
       state = state.copyWith(sending: false);
+    }
+  }
+
+  // ------------------------------------------------------------ M2 ops
+
+  /// Live conversation state for the chat screen (ChangeNotifier).
+  ConversationState? get convState => _sub?.state;
+  String? get deviceName => state.params?.deviceName;
+  bool get hasMoreHistory =>
+      convState?.hasMore == true && convState?.firstRowId != null;
+
+  Future<void> loadOlder() async {
+    final conv = _conv;
+    final sessionId = state.sessionId;
+    final st = convState;
+    if (conv == null || sessionId == null || st == null || _loadingOlder) {
+      return;
+    }
+    if (st.hasMore != true || st.firstRowId == null) return;
+    _loadingOlder = true;
+    try {
+      final res = await conv
+          .rowsRange(sessionId, beforeRowId: st.firstRowId, limit: 60)
+          .timeout(const Duration(seconds: 20));
+      if (res is Map) {
+        final rows = res['rows'];
+        st.prependOlderRows(
+          rows is List
+              ? rows.whereType<Map>().map((m) => m.cast<String, dynamic>()).toList()
+              : const <Map<String, dynamic>>[],
+          res['firstRowId'] as int?,
+        );
+        _log('历史加载: +${rows is List ? rows.length : 0} 行'
+            '${res['hasMore'] == true ? ' · 还有更早' : ' · 已到顶'}');
+      }
+    } catch (e) {
+      _log('历史加载失败: $e');
+    } finally {
+      _loadingOlder = false;
+    }
+  }
+
+  bool _loadingOlder = false;
+
+  /// Answers a pending interaction (待确认卡) with the chosen option.
+  Future<void> resolveInteraction(
+    String interactionId, {
+    String? optionId,
+  }) async {
+    final conv = _conv;
+    final sessionId = state.sessionId;
+    if (conv == null || sessionId == null) return;
+    try {
+      await conv
+          .resolveInteraction(sessionId, interactionId, optionId: optionId)
+          .timeout(const Duration(seconds: 15));
+      _log('待确认已处理 (${optionId ?? 'free'})');
+    } catch (e) {
+      _log('✗ 待确认处理失败: $e');
+    }
+  }
+
+  /// Trusts everything in a workspace-hook review prompt.
+  Future<void> trustHookReview(Map payload) async {
+    final conv = _conv;
+    final sessionId = state.sessionId;
+    if (conv == null || sessionId == null) return;
+    try {
+      await conv
+          .respondWorkspaceHookReview(sessionId, payload, const [])
+          .timeout(const Duration(seconds: 15));
+      _log('Hook 审查已信任通过');
+    } catch (e) {
+      _log('✗ Hook 审查失败: $e');
+    }
+  }
+
+  /// Web rewind precheck — reports what the desktop would revert.
+  Future<Map<String, dynamic>?> rewindPreview(
+      Map<String, dynamic> row) async {
+    final conv = _conv;
+    final sessionId = state.sessionId;
+    if (conv == null || sessionId == null) return null;
+    final target = <String, dynamic>{
+      'rowId': row['rowId'],
+      if (row['entityId'] != null) 'entityId': row['entityId'],
+    };
+    try {
+      final res = await conv
+          .fileRewindPreview(sessionId, target: target)
+          .timeout(const Duration(seconds: 20));
+      _log('回滚预检完成');
+      return res is Map<String, dynamic>
+          ? res
+          : res is Map
+              ? res.cast<String, dynamic>()
+              : null;
+    } catch (e) {
+      _log('✗ 回滚预检失败: $e');
+      return null;
+    }
+  }
+
+  /// Applies the rewind after the user confirms the preview.
+  Future<void> applyRewind(Map<String, dynamic> row) async {
+    final conv = _conv;
+    final sessionId = state.sessionId;
+    if (conv == null || sessionId == null) return;
+    final target = <String, dynamic>{
+      'rowId': row['rowId'],
+      if (row['entityId'] != null) 'entityId': row['entityId'],
+    };
+    try {
+      await conv
+          .applyFileRewind(sessionId, target)
+          .timeout(const Duration(seconds: 30));
+      _log('✓ 文件已回滚');
+    } catch (e) {
+      _log('✗ 回滚失败: $e');
     }
   }
 }

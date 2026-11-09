@@ -30,10 +30,30 @@ class _M1LoginPageState extends State<M1LoginPage> {
 })()
 ''';
 
+  /// Auto-clicks the BigModel entry once per page instance (zic mode): the
+  /// relay binds terminals by account realm, and the desktop is virtually
+  /// always logged in via BigModel — going straight there avoids the
+  /// wrong-realm JWT that pairing then rejects with AUTH_FAILED.
+  static const _autoBigModelJs = '''
+(function () {
+  if (window.__zcAutoEntry) return 'already';
+  window.__zcAutoEntry = 1;
+  var re = new RegExp("continue\\\\s*with\\\\s*bigmodel|使用\\\\s*BigModel\\\\s*账号登录", 'i');
+  var nodes = document.querySelectorAll('button, a, [role="tab"], span, div, li');
+  for (var i = 0; i < nodes.length; i++) {
+    var t = (nodes[i].innerText || '').trim();
+    if (t && t.length <= 30 && re.test(t)) {
+      nodes[i].click();
+      return 'clicked:' + t;
+    }
+  }
+  return 'notfound';
+})()
+''';
+
   late final WebViewController _controller;
   Timer? _harvestTimer;
   String? _candidateJwt;
-  int _stablePolls = 0;
   bool _captured = false;
 
   @override
@@ -57,17 +77,20 @@ class _M1LoginPageState extends State<M1LoginPage> {
 
   Future<void> _probe() async {
     if (_captured) return;
+    unawaited(_autoClickBigModel());
     final jwt = await _extractJwt();
-    if (jwt == null || jwt.isEmpty) {
-      _stablePolls = 0;
-      return;
-    }
-    if (jwt == _candidateJwt) {
-      _stablePolls++;
-    } else {
+    if (jwt == null || jwt.isEmpty) return;
+    if (jwt != _candidateJwt) {
       _candidateJwt = jwt;
-      _stablePolls = 0;
       if (mounted) setState(() {});
+    }
+  }
+
+  Future<void> _autoClickBigModel() async {
+    try {
+      await _controller.runJavaScript(_autoBigModelJs);
+    } catch (_) {
+      // The page may not have a DOM yet; the next poll retries.
     }
   }
 
