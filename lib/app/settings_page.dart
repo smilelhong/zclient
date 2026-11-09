@@ -4,9 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/gen/app_localizations.dart';
 import '../m1/relay_service.dart';
 import '../m1/console_page.dart';
+import 'app_settings.dart';
 
 /// M3 settings hub (A-枢纽页骨架): 外观(主题/语言) · 连接(诊断/断开) · 帮助与关于.
-/// Sub-pages arrive with M3 later batches.
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
 
@@ -16,6 +16,18 @@ class SettingsPage extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final s = ref.watch(m1Provider);
     final ctrl = ref.read(m1Provider.notifier);
+    final settings = ref.watch(appSettingsProvider);
+    final settingsCtrl = ref.read(appSettingsProvider.notifier);
+    final themeLabel = switch (settings.theme) {
+      ThemeMode.light => t.themeLight,
+      ThemeMode.dark => t.themeDark,
+      _ => t.themeSystem,
+    };
+    final localeLabel = switch (settings.locale?.languageCode) {
+      'zh' => '中文',
+      'en' => 'English',
+      _ => t.langSystem,
+    };
 
     return Scaffold(
       appBar: AppBar(
@@ -68,22 +80,14 @@ class SettingsPage extends ConsumerWidget {
                 ListTile(
                   leading: const Icon(Icons.dark_mode_outlined),
                   title: Text(t.themeMode),
-                  trailing: const Text('跟随系统'),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('主题切换在下一批接入')),
-                    );
-                  },
+                  trailing: Text(themeLabel),
+                  onTap: () => _pickTheme(context, settingsCtrl),
                 ),
                 ListTile(
                   leading: const Icon(Icons.language),
                   title: Text(t.language),
-                  trailing: const Text('中文 / English'),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('语言切换在下一批接入')),
-                    );
-                  },
+                  trailing: Text(localeLabel),
+                  onTap: () => _pickLocale(context, settingsCtrl),
                 ),
               ],
             ),
@@ -125,6 +129,59 @@ class SettingsPage extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _pickTheme(
+      BuildContext context, AppSettings ctrl) async {
+    final t = AppLocalizations.of(context);
+    final mode = await showModalBottomSheet<ThemeMode>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final (mode, label) in [
+              (ThemeMode.system, t.themeSystem),
+              (ThemeMode.light, t.themeLight),
+              (ThemeMode.dark, t.themeDark),
+            ])
+              ListTile(
+                title: Text(label),
+                onTap: () => Navigator.pop(ctx, mode),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (mode != null) await ctrl.setTheme(mode);
+  }
+
+  Future<void> _pickLocale(BuildContext context, AppSettings ctrl) async {
+    final t = AppLocalizations.of(context);
+    final code = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final (code, label) in [
+              (null as String?, t.langSystem),
+              ('zh', '中文'),
+              ('en', 'English'),
+            ])
+              ListTile(
+                title: Text(label),
+                onTap: () => Navigator.pop(ctx, code),
+              ),
+          ],
+        ),
+      ),
+    );
+    await ctrl.setLocale(
+      code == null ? null : Locale(code),
     );
   }
 }

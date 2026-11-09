@@ -37,6 +37,10 @@
   "sectionConnection": "Connection",
   "sectionAppearance": "Appearance",
   "sectionAbout": "About",
-  "themeMode": "Dark mode",
-  "language": "Language"
+  "themeMode": "Theme",
+  "themeSystem": "System",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "language": "Language",
+  "langSystem": "System"
 }

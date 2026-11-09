@@ -63,6 +63,7 @@ class PairedDevice {
 /// Multi-device persistence on top of the vendored AppKv store.
 class DeviceStore {
   static const _key = 'zc.devices';
+  static const _activeKey = 'zc.devices.active';
   static const _legacyLinkKey = 'zc.pairing.link';
 
   DeviceStore._();
@@ -79,15 +80,25 @@ class DeviceStore {
   Future<void> load() async {
     await _migrateLegacy();
     final raw = await AppKv.instance.getString(_key);
-    if (raw == null || raw.isEmpty) return;
+    if (raw != null && raw.isNotEmpty) {
+      try {
+        final list = jsonDecode(raw);
+        if (list is List) {
+          _cache = list
+              .whereType<Map>()
+              .map(PairedDevice.fromJson)
+              .whereType<PairedDevice>()
+              .toList();
+        }
+      } catch (_) {}
+    }
+    // Restore the active device too — without this the auto-reconnect
+    // after a restart silently no-ops.
     try {
-      final list = jsonDecode(raw);
-      if (list is! List) return;
-      _cache = list
-          .whereType<Map>()
-          .map(PairedDevice.fromJson)
-          .whereType<PairedDevice>()
-          .toList();
+      final sid = await AppKv.instance.getString(_activeKey);
+      if (sid != null && _cache.any((d) => d.sid == sid)) {
+        _activeSid = sid;
+      }
     } catch (_) {}
   }
 
@@ -148,6 +159,11 @@ class DeviceStore {
         _key,
         jsonEncode(_cache.map((d) => d.toJson()).toList()),
       );
+      if (_activeSid == null) {
+        await AppKv.instance.remove(_activeKey);
+      } else {
+        await AppKv.instance.setString(_activeKey, _activeSid!);
+      }
     } catch (_) {}
   }
 }

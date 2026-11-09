@@ -211,7 +211,7 @@ class _SessionRow extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(
-                          entry.lastAssistantPreview!,
+                          _plaintext(entry.lastAssistantPreview!),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodySmall,
@@ -248,4 +248,11 @@ class _SessionRow extends StatelessWidget {
     return '${DateTime.fromMillisecondsSinceEpoch(ms).month}/'
         '${DateTime.fromMillisecondsSinceEpoch(ms).day}';
   }
+
+  /// Strips markdown noise so list previews read as plain text.
+  static String _plaintext(String src) => src
+      .replaceAll(RegExp(r'\*\*?([^*]+)\*\*?'), r'$1')
+      .replaceAll('`', '')
+      .replaceAll(RegExp(r'^#+\s*'), '')
+      .trim();
 }

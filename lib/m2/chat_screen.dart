@@ -24,12 +24,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _scroll = ScrollController();
   final _input = TextEditingController();
   bool _stickToBottom = true;
+  bool _userScrolled = false;
   Timer? _blink;
 
   @override
   void initState() {
     super.initState();
     _scroll.addListener(() {
+      // Only the user's own drag breaks stickiness — content growth (new
+      // frames extend maxScrollExtent) must keep pinning to the bottom,
+      // otherwise a switched-into history session rests mid-list.
+      if (!_userScrolled) return;
       final atBottom = _scroll.position.pixels >=
           _scroll.position.maxScrollExtent - 120;
       if (atBottom != _stickToBottom) setState(() => _stickToBottom = atBottom);
@@ -61,10 +66,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   bool _onScroll(ScrollNotification n) {
-    if (n is ScrollUpdateNotification &&
-        n.metrics.pixels < 80 &&
-        ref.read(m1Provider.notifier).hasMoreHistory) {
-      ref.read(m1Provider.notifier).loadOlder();
+    if (n is ScrollUpdateNotification) {
+      if (n.dragDetails != null) {
+        _userScrolled = true;
+        if (n.metrics.pixels >= n.metrics.maxScrollExtent - 120) {
+          _userScrolled = false; // dragging back to the bottom re-sticks
+        }
+      }
+      if (n.metrics.pixels < 80 &&
+          ref.read(m1Provider.notifier).hasMoreHistory) {
+        ref.read(m1Provider.notifier).loadOlder();
+      }
     }
     return false;
   }
@@ -179,17 +191,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: TextField(
-                          controller: _input,
-                          minLines: 1,
-                          maxLines: 4,
-                          textInputAction: TextInputAction.newline,
-                          onSubmitted: (_) => _send(),
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            isDense: true,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest
+                                .withValues(alpha: .55),
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                          style: Theme.of(context).textTheme.bodyMedium,
+                          child: TextField(
+                            controller: _input,
+                            minLines: 1,
+                            maxLines: 4,
+                            textInputAction: TextInputAction.newline,
+                            onSubmitted: (_) => _send(),
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              isDense: true,
+                              hintText: t.messageHint,
+                            ),
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),

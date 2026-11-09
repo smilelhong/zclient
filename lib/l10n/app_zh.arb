@@ -40,5 +40,9 @@
   "sectionAppearance": "外观",
   "sectionAbout": "帮助与关于",
   "themeMode": "深色模式",
-  "language": "语言"
+  "themeSystem": "跟随系统",
+  "themeLight": "浅色",
+  "themeDark": "深色",
+  "language": "语言",
+  "langSystem": "跟随系统"
 }
