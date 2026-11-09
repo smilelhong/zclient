@@ -45,11 +45,11 @@ class _ZClientAppState extends ConsumerState<ZClientApp>
     // Design-system v1.1: exact tokens (§2.2 light / dark counterparts),
     // quantized rhythm (§6) and one-primary-per-screen discipline.
     final light = ColorScheme.light(
-      primary: ZColors.misty,
+      primary: ZColors.accent,
       onPrimary: Colors.white,
       primaryContainer: ZColors.lightPc,
       onPrimaryContainer: ZColors.lightOnPc,
-      secondary: ZColors.misty,
+      secondary: ZColors.accent,
       surface: ZColors.lightSurface,
       onSurface: const Color(0xFF1B1C20),
       onSurfaceVariant: const Color(0xFF4B4C55),
@@ -57,7 +57,7 @@ class _ZClientAppState extends ConsumerState<ZClientApp>
       outline: ZColors.lightOutline,
       outlineVariant: ZColors.lightOutline,
       surfaceTint: Colors.transparent,
-      tertiary: ZColors.success,
+      tertiary: ZColors.greenDot,
       error: ZColors.danger,
     );
     final dark = ColorScheme.dark(
@@ -192,8 +192,8 @@ class _ZClientAppState extends ConsumerState<ZClientApp>
           gradient: settings.theme == ThemeMode.dark
               ? null
               : const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+                  begin: Alignment(-1, -1),
+                  end: Alignment(1, 1),
                   colors: [ZColors.bgGradTop, ZColors.bgGradBottom],
                 ),
           color: settings.theme == ThemeMode.dark ? ZColors.darkBg : null,

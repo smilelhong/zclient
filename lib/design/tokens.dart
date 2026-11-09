@@ -33,8 +33,8 @@ abstract final class ZColors {
   static const misty = Color(0xFF3D6B9E);
   static const lightBg = Color(0xFFEFF1F4);
   static const lightSurface = Color(0xFFFFFFFF);
-  static const lightPc = Color(0xFFE4EAF1);
-  static const lightOnPc = Color(0xFF2B4A6E);
+  static const lightPc = Color(0xFFD9E9E9); // teal-tinted container
+  static const lightOnPc = Color(0xFF0F3D42);
   static const lightOutline = Color(0xFFE1E3E3);
   static const success = Color(0xFF2E7D43);
   static const successText = Color(0xFF14662E);
@@ -43,9 +43,11 @@ abstract final class ZColors {
   static const diffAdd = Color(0xFF3E9E5C);
   static const diffDel = Color(0xFFD25454);
 
-  // dsh-Go soft page gradient (light): airy blue → near-white
-  static const bgGradTop = Color(0xFFE7EFF7);
-  static const bgGradBottom = Color(0xFFF8FAFC);
+  // dsh-Go measured page gradient (135°) + single accent (visual spec §1-2)
+  static const bgGradTop = Color(0xFFEAF3F8);
+  static const bgGradBottom = Color(0xFFC3DBE9);
+  static const accent = Color(0xFF155E66); // deep teal — the ONLY accent
+  static const greenDot = Color(0xFF34B26B);
   // soft warning surface for connection errors (replaces the red slab)
   static const warnSurface = Color(0xFFFDECEA);
   static const warnText = Color(0xFF9A3324);
@@ -68,7 +70,7 @@ abstract final class ZColors {
   static Color outline(Brightness b) =>
       b == Brightness.dark ? darkOutline : lightOutline;
   static Color okDot(Brightness b) =>
-      b == Brightness.dark ? darkSuccess : success;
+      b == Brightness.dark ? darkSuccess : greenDot;
 }
 
 /// Type-scale tracking (Apple §15): tight large titles, relaxed micro

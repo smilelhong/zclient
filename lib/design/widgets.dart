@@ -31,13 +31,11 @@ class ZListRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Material(
-        color: highlighted
-            ? ZColors.pc(scheme.brightness)
-            : ZColors.surface(scheme.brightness),
+        color: ZColors.surface(scheme.brightness),
         borderRadius: BorderRadius.circular(AppRadius.card),
         clipBehavior: Clip.antiAlias,
         shadowColor: const Color(0x14203A50),
-        elevation: highlighted ? 0 : 1.5,
+        elevation: 1.5,
         child: InkWell(
           borderRadius: BorderRadius.circular(AppRadius.card),
           onTap: onTap,
