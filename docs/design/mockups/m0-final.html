@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZClient M0 定稿设计 · Material You × Apple 质感（雾蓝）</title>
+<style>body{margin:0;background:#EDEDEA;display:flex;justify-content:center;padding:24px}</style>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+<div id="zclient-style-a-accent" class="mu" aria-label="ZClient 主题取色">
+<style>
+#zclient-style-a-accent{--mu-accent:#3D6B9E;--mu-primary:var(--mu-accent);--mu-on-primary:#FFFFFF;--mu-pc:color-mix(in oklab,var(--mu-accent) 14%,#FFFFFF);--mu-on-pc:color-mix(in oklab,var(--mu-accent) 62%,#0E1420);--mu-bg:color-mix(in oklab,var(--mu-accent) 6%,#F7F7F5);--mu-surface:#FFFFFF;--mu-surface-2:color-mix(in oklab,var(--mu-accent) 5%,#FFFFFF);--mu-text:#1B1C20;--mu-muted:#4B4C55;--mu-line:color-mix(in oklab,var(--mu-accent) 7%,#E7E7E3);--mu-ok:#14662E;--mu-kw:color-mix(in oklab,var(--mu-accent) 68%,#12203A);--mu-add:#E9F4EA;--mu-del:#FCEBEA;--mu-delt:#B3261E;--mu-bar:color-mix(in oklab,var(--mu-surface) 72%,transparent);--mu-edge:color-mix(in oklab,#FFFFFF 45%,transparent);font-family:-apple-system,"SF Pro Text","PingFang SC","Segoe UI",system-ui,sans-serif;background:var(--mu-bg);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:18px;min-height:1290px;color:var(--mu-text);font-optical-sizing:auto}
+#zclient-style-a-accent .lucide{width:18px;height:18px;flex:none}
+#zclient-style-a-accent .mu-head{display:flex;align-items:baseline;gap:10px;padding:0 4px}
+#zclient-style-a-accent .mu-head .eyebrow{font-size:11px;letter-spacing:.12em;color:var(--mu-primary);font-weight:500}
+#zclient-style-a-accent .mu-head .name{font-size:15px;font-weight:500;letter-spacing:-.01em}
+#zclient-style-a-accent .mu-head .desc{font-size:12px;color:var(--mu-muted)}
+
+/* ——— 浮动半透明层：内容从下方穿过 ——— */
+#zclient-style-a-accent .mu-float{background:var(--mu-bar);-webkit-backdrop-filter:blur(18px) saturate(170%);backdrop-filter:blur(18px) saturate(170%)}
+#zclient-style-a-accent .mu-tab{width:100%;max-width:940px;height:520px;margin:0 auto;background:var(--mu-surface);border-radius:24px;display:flex;overflow:hidden;box-shadow:0 2px 10px rgba(30,40,60,.10)}
+#zclient-style-a-accent .mu-rail{width:248px;flex:none;background:var(--mu-surface-2);border-right:1px solid var(--mu-line);display:flex;flex-direction:column;padding:16px 12px;gap:4px}
+#zclient-style-a-accent .mu-rail .app{display:flex;align-items:center;gap:10px;padding:6px 10px 16px}
+#zclient-style-a-accent .mu-rail .logo{width:26px;height:26px;border-radius:9px;background:var(--mu-primary);color:var(--mu-on-primary);display:flex;align-items:center;justify-content:center;font-weight:500;font-size:13px}
+#zclient-style-a-accent .mu-rail .app b{font-size:14px;font-weight:500;letter-spacing:-.01em}
+#zclient-style-a-accent .mu-sec{font-size:10.5px;color:var(--mu-muted);padding:10px 10px 4px;letter-spacing:.08em;font-weight:500}
+#zclient-style-a-accent .mu-dev{display:flex;gap:10px;align-items:center;padding:10px;border-radius:14px;transition:transform .12s ease-out,background .12s ease-out}
+#zclient-style-a-accent .mu-dev:active{transform:scale(.97);background:var(--mu-pc)}
+#zclient-style-a-accent .mu-dev .nm{font-size:13px}
+#zclient-style-a-accent .mu-dev .st{font-size:11px;color:var(--mu-muted)}
+#zclient-style-a-accent .mu-dev.on .lucide{color:var(--mu-primary)}
+#zclient-style-a-accent .mu-dot{width:7px;height:7px;border-radius:50%;flex:none;margin-left:auto}
+#zclient-style-a-accent .mu-dot.on{background:#2E7D43}.mu-dot.off{background:#C6C6CE}
+#zclient-style-a-accent .mu-sess{display:flex;flex-direction:column;gap:2px}
+#zclient-style-a-accent .mu-sess .row{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:14px;font-size:13px;transition:transform .12s ease-out}
+#zclient-style-a-accent .mu-sess .row:active{transform:scale(.97)}
+#zclient-style-a-accent .mu-sess .row.act{background:var(--mu-pc);color:var(--mu-on-pc);font-weight:500}
+#zclient-style-a-accent .mu-sess .row .done{color:var(--mu-muted);font-weight:400}
+#zclient-style-a-accent .mu-chipmini{font-size:10px;background:color-mix(in oklab,var(--mu-accent) 13%,#FFFFFF);color:var(--mu-kw);border-radius:99px;padding:2px 8px;margin-left:auto;font-weight:500}
+#zclient-style-a-accent .mu-rail .foot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;color:var(--mu-muted);font-size:13px;border-radius:14px;transition:transform .12s ease-out}
+#zclient-style-a-accent .mu-rail .foot:active{transform:scale(.97)}
+#zclient-style-a-accent .mu-pane{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;background:var(--mu-bg)}
+#zclient-style-a-accent .mu-pane .bar{position:absolute;top:0;left:0;right:0;z-index:3;display:flex;align-items:center;gap:10px;padding:12px 18px;box-shadow:inset 0 -1px 0 color-mix(in oklab,var(--mu-line) 50%,transparent)}
+#zclient-style-a-accent .mu-pane .bar .t{font-size:14px;font-weight:500;letter-spacing:-.01em}
+#zclient-style-a-accent .mu-pane .bar .s{font-size:11px;color:var(--mu-muted);display:flex;align-items:center;gap:5px;font-weight:500}
+#zclient-style-a-accent .mu-pane .bar .s .d{width:6px;height:6px;border-radius:50%;background:#2E7D43}
+#zclient-style-a-accent .mu-pane .bar .more{margin-left:auto;color:var(--mu-muted)}
+#zclient-style-a-accent .mu-msgs{flex:1;padding:62px 20px 78px;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+#zclient-style-a-accent .mu-fade-t,#zclient-style-a-accent .mu-fade-b{position:absolute;left:0;right:0;pointer-events:none;z-index:2}
+#zclient-style-a-accent .mu-fade-t{top:0;height:60px;background:linear-gradient(var(--mu-bg),color-mix(in oklab,var(--mu-bg) 0%,transparent))}
+#zclient-style-a-accent .mu-fade-b{bottom:0;height:74px;background:linear-gradient(transparent,var(--mu-bg))}
+#zclient-style-a-accent .mu-bub{align-self:flex-end;max-width:78%;background:var(--mu-pc);color:var(--mu-on-pc);border-radius:18px 18px 4px 18px;padding:11px 14px;font-size:13px;line-height:1.55}
+#zclient-style-a-accent .mu-agent{display:flex;flex-direction:column;gap:10px;max-width:88%}
+#zclient-style-a-accent .mu-tool{display:inline-flex;align-items:center;gap:7px;background:var(--mu-surface);border:1px solid var(--mu-line);border-radius:99px;padding:5px 12px;font-size:11px;color:var(--mu-muted);align-self:flex-start;transition:transform .12s ease-out}
+#zclient-style-a-accent .mu-tool:active{transform:scale(.97)}
+#zclient-style-a-accent .mu-agent .txt{font-size:13px;line-height:1.6;background:var(--mu-surface);border-radius:4px 18px 18px 18px;padding:11px 14px}
+#zclient-style-a-accent .mu-code{background:color-mix(in oklab,var(--mu-accent) 5%,#FBFBFD);border-radius:12px;padding:10px 12px;font:11.5px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace;color:#3E4048;overflow:hidden}
+#zclient-style-a-accent .mu-code .k{color:var(--mu-kw)}.mu-code .s{color:#0F766E}.mu-code .f{color:color-mix(in oklab,var(--mu-accent) 55%,#103A70)}
+#zclient-style-a-accent .mu-diffcard{display:flex;align-items:center;gap:9px;background:var(--mu-surface);border:1px solid var(--mu-line);border-radius:16px;padding:10px 13px;font-size:12px;transition:transform .12s ease-out}
+#zclient-style-a-accent .mu-diffcard:active{transform:scale(.97)}
+#zclient-style-a-accent .mu-diffcard .lucide{color:var(--mu-primary)}
+#zclient-style-a-accent .mu-add{color:var(--mu-ok);font-weight:500}.mu-delc{color:var(--mu-delt);font-weight:500}
+#zclient-style-a-accent .mu-diffcard .chev{margin-left:auto;color:var(--mu-muted)}
+#zclient-style-a-accent .mu-approve{background:var(--mu-surface);border:1px solid var(--mu-line);border-left:4px solid var(--mu-primary);border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 1px 2px rgba(28,38,54,.05),0 4px 14px rgba(28,38,54,.07)}
+#zclient-style-a-accent .mu-approve .tt{font-size:12px;font-weight:500}
+#zclient-style-a-accent .mu-approve .cm{font:11px ui-monospace,Menlo,monospace;color:var(--mu-muted)}
+#zclient-style-a-accent .mu-approve .btns{margin-left:auto;display:flex;gap:8px}
+#zclient-style-a-accent .mu-btn{border:none;border-radius:99px;padding:7px 16px;font-size:12px;font-weight:500;display:inline-flex;align-items:center;gap:6px;transition:transform .1s ease-out,opacity .1s ease-out}
+#zclient-style-a-accent .mu-btn:active{transform:scale(.97);opacity:.88}
+#zclient-style-a-accent .mu-btn.fill{background:var(--mu-primary);color:var(--mu-on-primary)}
+#zclient-style-a-accent .mu-btn.tonal{background:var(--mu-pc);color:var(--mu-on-pc)}
+#zclient-style-a-accent .mu-stream{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mu-muted)}
+#zclient-style-a-accent .mu-stream .pulse{width:8px;height:8px;border-radius:50%;background:var(--mu-primary)}
+#zclient-style-a-accent .mu-caret{display:inline-block;width:2px;height:13px;background:var(--mu-primary);vertical-align:-2px}
+#zclient-style-a-accent .mu-input{position:absolute;bottom:0;left:0;right:0;z-index:3;display:flex;align-items:center;gap:10px;padding:12px 18px;box-shadow:inset 0 1px 0 var(--mu-edge)}
+#zclient-style-a-accent .mu-input .fld{flex:1;background:var(--mu-surface-2);border-radius:99px;padding:10px 16px;font-size:12.5px;color:var(--mu-muted)}
+#zclient-style-a-accent .mu-input .micb{display:flex;color:var(--mu-muted);transition:transform .1s ease-out}
+#zclient-style-a-accent .mu-input .micb:active{transform:scale(.9)}
+#zclient-style-a-accent .mu-input .send{width:38px;height:38px;border-radius:50%;background:var(--mu-primary);color:var(--mu-on-primary);display:flex;align-items:center;justify-content:center;transition:transform .1s ease-out;box-shadow:0 4px 12px color-mix(in oklab,var(--mu-accent) 32%,transparent)}
+#zclient-style-a-accent .mu-input .send:active{transform:scale(.9)}
+#zclient-style-a-accent .mu-phones{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+#zclient-style-a-accent .mu-ph{width:296px;height:600px;background:var(--mu-bg);border-radius:30px;border:8px solid #1B1C22;overflow:hidden;display:flex;flex-direction:column;position:relative}
+#zclient-style-a-accent .mu-status{display:flex;align-items:center;padding:8px 18px 4px;font-size:11px;font-weight:500;letter-spacing:.01em}
+#zclient-style-a-accent .mu-status .r{margin-left:auto;display:flex;gap:6px;color:var(--mu-muted)}
+#zclient-style-a-accent .mu-status .r .lucide{width:13px;height:13px}
+#zclient-style-a-accent .mu-appbar{display:flex;align-items:center;gap:12px;padding:8px 18px 10px}
+#zclient-style-a-accent .mu-appbar b{font-size:22px;font-weight:500;letter-spacing:-.02em}
+#zclient-style-a-accent .mu-appbar .lk{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:500;letter-spacing:-.01em;color:var(--mu-text)}
+#zclient-style-a-accent .mu-appbar .scan{margin-left:auto;width:40px;height:40px;border-radius:50%;background:var(--mu-pc);color:var(--mu-on-pc);display:flex;align-items:center;justify-content:center;transition:transform .1s ease-out}
+#zclient-style-a-accent .mu-appbar .scan:active{transform:scale(.9)}
+#zclient-style-a-accent .mu-appbar .rb{margin-left:auto;display:flex;align-items:center;gap:6px;color:var(--mu-primary);font-size:12.5px;font-weight:500;transition:transform .1s ease-out}
+#zclient-style-a-accent .mu-appbar .rb:active{transform:scale(.95)}
+#zclient-style-a-accent .mu-body{flex:1;padding:6px 16px 84px;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+#zclient-style-a-accent .mu-card{background:var(--mu-surface);border-radius:20px;padding:14px 16px;box-shadow:0 1px 2px rgba(28,38,54,.05),0 4px 14px rgba(28,38,54,.07);transition:transform .12s ease-out}
+#zclient-style-a-accent .mu-card:active{transform:scale(.97)}
+#zclient-style-a-accent .mu-card .hd{display:flex;align-items:center;gap:11px}
+#zclient-style-a-accent .mu-card .ic{width:40px;height:40px;border-radius:14px;background:var(--mu-pc);color:var(--mu-on-pc);display:flex;align-items:center;justify-content:center}
+#zclient-style-a-accent .mu-card.off .ic{background:#EDEDEF;color:#9A9AA4}
+#zclient-style-a-accent .mu-card .nm{font-size:14px;font-weight:500;letter-spacing:-.01em}
+#zclient-style-a-accent .mu-card .st{font-size:11.5px;color:var(--mu-muted)}
+#zclient-style-a-accent .mu-card .st.on{color:var(--mu-ok);font-weight:500}
+#zclient-style-a-accent .mu-card .chips{display:flex;gap:6px;margin-top:11px;flex-wrap:wrap}
+#zclient-style-a-accent .mu-card .chip{font-size:11px;background:var(--mu-surface-2);border:1px solid var(--mu-line);border-radius:99px;padding:4px 10px;color:var(--mu-muted)}
+#zclient-style-a-accent .mu-nav{position:absolute;bottom:0;left:0;right:0;z-index:4;display:flex;padding:8px 6px calc(10px + 6px);box-shadow:inset 0 1px 0 var(--mu-edge)}
+#zclient-style-a-accent .mu-nav .it{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;font-weight:500;color:var(--mu-muted);transition:transform .1s ease-out}
+#zclient-style-a-accent .mu-nav .it:active{transform:scale(.92)}
+#zclient-style-a-accent .mu-nav .it.act{color:var(--mu-primary)}
+#zclient-style-a-accent .mu-fab{position:absolute;right:16px;bottom:96px;z-index:5;display:flex;align-items:center;gap:8px;background:var(--mu-primary);color:var(--mu-on-primary);border-radius:18px;padding:13px 18px;font-size:13px;font-weight:500;letter-spacing:-.01em;box-shadow:0 6px 18px color-mix(in oklab,var(--mu-accent) 38%,transparent);transition:transform .12s ease-out}
+#zclient-style-a-accent .mu-fab:active{transform:scale(.95)}
+#zclient-style-a-accent .mu-diffmeta{display:flex;align-items:center;gap:8px;padding:2px 18px 10px;font-size:11.5px;color:var(--mu-muted)}
+#zclient-style-a-accent .mu-dl{background:var(--mu-surface);border-radius:16px;padding:12px 0;font:11.5px/1.9 ui-monospace,SFMono-Regular,Menlo,monospace;overflow:hidden;box-shadow:0 1px 2px rgba(28,38,54,.05)}
+#zclient-style-a-accent .mu-dl .ln{display:flex;padding:0 14px;white-space:pre}
+#zclient-style-a-accent .mu-dl .n{width:22px;color:#B5B5BE;flex:none}
+#zclient-style-a-accent .mu-dl .a{background:var(--mu-add);color:#146C2E;display:block;width:100%}
+#zclient-style-a-accent .mu-dl .d{background:var(--mu-del);color:var(--mu-delt);display:block;width:100%}
+#zclient-style-a-accent .mu-dl .h{color:var(--mu-primary);background:var(--mu-surface-2);font-weight:500}
+#zclient-style-a-accent .mu-morefiles{margin:10px 18px 0;display:flex;align-items:center;gap:8px;background:var(--mu-surface-2);border:1px solid var(--mu-line);border-radius:14px;padding:9px 13px;font-size:11.5px;color:var(--mu-muted);transition:transform .12s ease-out}
+#zclient-style-a-accent .mu-morefiles:active{transform:scale(.97)}
+@keyframes zca-blink{50%{opacity:0}}
+#zclient-style-a-accent .mu-caret{animation:zca-blink 1.1s steps(1) infinite}
+@media (prefers-reduced-motion:reduce){#zclient-style-a-accent .mu-caret{animation:none}#zclient-style-a-accent *{transition:none!important}}
+@media (prefers-reduced-transparency:reduce){
+#zclient-style-a-accent .mu-float{background:var(--mu-surface);-webkit-backdrop-filter:none;backdrop-filter:none}
+}
+@media (max-width:760px){
+#zclient-style-a-accent .mu-rail{width:64px}
+#zclient-style-a-accent .mu-rail .app b,#zclient-style-a-accent .mu-rail .mu-dev div,#zclient-style-a-accent .mu-rail .mu-sec,#zclient-style-a-accent .mu-rail .mu-sess .row span,#zclient-style-a-accent .mu-rail .foot span,#zclient-style-a-accent .mu-sess .row{display:none}
+#zclient-style-a-accent .mu-tab{height:auto;min-height:520px}
+}
+</style>
+
+<div class="mu-head"><span class="eyebrow">定稿方案</span><span class="name">A · Material You × Apple 质感</span><span class="desc">雾蓝基调 · 半透明浮动层 · 按压反馈 · 大标题排版 · 边缘渐隐（主色仍可调）</span></div>
+
+<div class="mu-tab">
+  <div class="mu-rail">
+    <div class="app"><span class="logo">Z</span><b>ZClient</b></div>
+    <div class="mu-sec">设备</div>
+    <div class="mu-dev on"><i data-lucide="monitor" aria-hidden="true"></i><div><div class="nm">lhong 的 MacBook Pro</div><div class="st">2 个会话</div></div><span class="mu-dot on"></span></div>
+    <div class="mu-dev"><i data-lucide="monitor" aria-hidden="true"></i><div><div class="nm">公司台式机</div><div class="st">离线 · 3 小时前</div></div><span class="mu-dot off"></span></div>
+    <div class="mu-sec">会话 · MacBook Pro</div>
+    <div class="mu-sess">
+      <div class="row act"><i data-lucide="terminal" aria-hidden="true"></i>重构登录模块<span class="mu-chipmini">进行中</span></div>
+      <div class="row done"><i data-lucide="terminal" aria-hidden="true"></i>修复 CI 失败</div>
+      <div class="row done"><i data-lucide="terminal" aria-hidden="true"></i>整理依赖清单</div>
+    </div>
+    <div class="foot"><i data-lucide="settings" aria-hidden="true"></i><span>设置</span></div>
+  </div>
+  <div class="mu-pane">
+    <div class="mu-fade-t"></div>
+    <div class="mu-fade-b"></div>
+    <div class="bar mu-float"><div><div class="t">重构登录模块</div><div class="s"><span class="d"></span>lhong 的 MacBook Pro · 在线</div></div><i class="more" data-lucide="more-horizontal" aria-hidden="true"></i></div>
+    <div class="mu-msgs">
+      <div class="mu-bub">帮我把登录页的表单校验补全：邮箱格式、必填项、错误提示文案。</div>
+      <div class="mu-agent">
+        <span class="mu-tool"><i data-lucide="file-code" aria-hidden="true"></i>已读取 src/pages/login/Login.vue · 214 行</span>
+        <div class="txt">校验逻辑目前只有空值检查。计划：抽出 validators、接入邮箱正则、错误文案走 i18n。</div>
+        <div class="mu-code"><span class="k">export const</span> <span class="f">isEmail</span> = (v: <span class="k">string</span>) =&gt;<br>&nbsp;&nbsp;EMAIL_RE.<span class="f">test</span>(v.<span class="f">trim</span>())<br><br><span class="k">const</span> EMAIL_RE = <span class="s">/^[^@\s]+@[^@\s]+\.[^@\s]+$/</span></div>
+        <div class="mu-diffcard"><i data-lucide="file-diff" aria-hidden="true"></i>编辑 validators.ts<span class="mu-add">+12</span><span class="mu-delc">−3</span><i class="chev" data-lucide="chevron-right" aria-hidden="true"></i></div>
+      </div>
+      <div class="mu-approve"><i data-lucide="play" aria-hidden="true" style="color:var(--mu-primary)"></i><div><div class="tt">待确认 · 运行测试</div><div class="cm">npx vitest run login</div></div><div class="btns"><button type="button" class="mu-btn tonal">拒绝</button><button type="button" class="mu-btn fill"><i data-lucide="check" aria-hidden="true" style="width:13px;height:13px"></i>批准</button></div></div>
+      <div class="mu-stream"><span class="pulse"></span>正在更新 zh-CN.json 错误文案<span class="mu-caret"></span></div>
+    </div>
+    <div class="mu-input mu-float"><div class="fld">发送消息…</div><span class="micb"><i data-lucide="mic" aria-hidden="true"></i></span><span class="send"><i data-lucide="send" aria-hidden="true" style="width:16px;height:16px"></i></span></div>
+  </div>
+</div>
+
+<div class="mu-phones">
+  <div class="mu-ph">
+    <div class="mu-status">9:41<span class="r"><i data-lucide="wifi" aria-hidden="true"></i><i data-lucide="battery-full" aria-hidden="true"></i></span></div>
+    <div class="mu-appbar"><b>ZClient</b><span class="scan"><i data-lucide="qr-code" aria-hidden="true"></i></span></div>
+    <div class="mu-body">
+      <div class="mu-card">
+        <div class="hd"><span class="ic"><i data-lucide="monitor" aria-hidden="true"></i></span><div><div class="nm">lhong 的 MacBook Pro</div><div class="st on">在线 · 2 个会话进行中</div></div></div>
+        <div class="chips"><span class="chip">重构登录模块</span><span class="chip">修复 CI 失败</span></div>
+      </div>
+      <div class="mu-card off">
+        <div class="hd"><span class="ic"><i data-lucide="monitor" aria-hidden="true"></i></span><div><div class="nm">公司台式机</div><div class="st">离线 · 3 小时前</div></div></div>
+      </div>
+    </div>
+    <span class="mu-fab"><i data-lucide="qr-code" aria-hidden="true"></i>扫码添加</span>
+    <div class="mu-nav mu-float">
+      <div class="it act"><i data-lucide="smartphone" aria-hidden="true"></i><span>设备</span></div>
+      <div class="it"><i data-lucide="message-square" aria-hidden="true"></i><span>会话</span></div>
+      <div class="it"><i data-lucide="settings" aria-hidden="true"></i><span>设置</span></div>
+    </div>
+  </div>
+
+  <div class="mu-ph">
+    <div class="mu-status">9:41<span class="r"><i data-lucide="wifi" aria-hidden="true"></i><i data-lucide="battery-full" aria-hidden="true"></i></span></div>
+    <div class="mu-pane" style="height:566px">
+      <div class="mu-fade-t"></div>
+      <div class="mu-fade-b"></div>
+      <div class="bar mu-float"><span style="display:flex;align-items:center;gap:8px"><i data-lucide="chevron-left" aria-hidden="true" style="color:var(--mu-primary)"></i><span class="t">重构登录模块</span></span></div>
+      <div class="mu-msgs" style="padding:54px 14px 72px;gap:9px">
+        <div class="mu-bub">帮我把登录页的表单校验补全：邮箱格式、必填项、错误提示文案。</div>
+        <div class="mu-agent">
+          <span class="mu-tool"><i data-lucide="file-code" aria-hidden="true"></i>已读取 Login.vue · 214 行</span>
+          <div class="txt">校验只有空值检查，我来补全三处。</div>
+          <div class="mu-diffcard"><i data-lucide="file-diff" aria-hidden="true"></i>validators.ts<span class="mu-add">+12</span><span class="mu-delc">−3</span></div>
+        </div>
+        <div class="mu-approve" style="flex-wrap:wrap"><div style="min-width:100%"><div class="tt">待确认 · 运行测试</div><div class="cm">npx vitest run login</div></div><div class="btns" style="margin-left:0"><button type="button" class="mu-btn tonal">拒绝</button><button type="button" class="mu-btn fill">批准</button></div></div>
+        <div class="mu-stream"><span class="pulse"></span>更新错误文案<span class="mu-caret"></span></div>
+      </div>
+      <div class="mu-input mu-float" style="padding:10px 14px"><div class="fld">发送消息…</div><span class="micb"><i data-lucide="mic" aria-hidden="true"></i></span><span class="send" style="width:34px;height:34px"><i data-lucide="send" aria-hidden="true" style="width:14px;height:14px"></i></span></div>
+    </div>
+  </div>
+
+  <div class="mu-ph">
+    <div class="mu-status">9:41<span class="r"><i data-lucide="wifi" aria-hidden="true"></i><i data-lucide="battery-full" aria-hidden="true"></i></span></div>
+    <div class="mu-appbar" style="gap:8px;padding-top:10px"><i data-lucide="chevron-left" aria-hidden="true" style="color:var(--mu-primary)"></i><span class="lk">validators.ts</span><span class="rb"><i data-lucide="undo-2" aria-hidden="true" style="width:15px;height:15px"></i>回滚</span></div>
+    <div class="mu-diffmeta"><i data-lucide="file-diff" aria-hidden="true" style="width:13px;height:13px;color:var(--mu-primary)"></i>src/pages/login/<span class="mu-add">+12</span><span class="mu-delc">−3</span></div>
+    <div class="mu-body" style="padding:0 16px 12px">
+      <div class="mu-dl">
+        <div class="ln h"><span class="n"> </span>@@ validateLogin(form) @@</div>
+        <div class="ln"><span class="n">13</span>  const errors: string[] = []</div>
+        <div class="ln"><span class="n">14</span><span class="a">+  if (!form.email) errors.push('email_required')</span></div>
+        <div class="ln"><span class="n">15</span><span class="a">+  if (!isEmail(form.email)) errors.push('email_format')</span></div>
+        <div class="ln"><span class="n">16</span><span class="d">-  if (!form.password) errors.push('password')</span></div>
+        <div class="ln"><span class="n">17</span><span class="a">+  if (!form.password) errors.push('password_required')</span></div>
+        <div class="ln"><span class="n">18</span>  return errors</div>
+        <div class="ln"><span class="n">19</span>}</div>
+      </div>
+      <div class="mu-morefiles"><i data-lucide="file-diff" aria-hidden="true" style="width:13px;height:13px"></i>另有 2 个文件变更 · 点击查看</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const zcRoot = document.getElementById('zclient-style-a-accent');
+const zcState = { accent: '#3D6B9E' };
+function zcRender() {
+  zcRoot.style.setProperty('--mu-accent', zcState.accent);
+}
+zcRender();
+if (globalThis.Tweak) {
+  const zcTweak = new Tweak({ container: zcRoot, onChange: zcRender });
+  zcTweak.addColorPicker(zcState, 'accent', { label: '主色 Accent', reference: '--mu-accent' });
+  zcTweak.addSelect(zcState, 'accent', {
+    label: '颜色预设',
+    options: [
+      { label: '雾蓝 Misty', value: '#3D6B9E' },
+      { label: '灰蓝 Steel', value: '#5B7C99' },
+      { label: '藏青 Navy', value: '#33507B' },
+      { label: '浅雾蓝 Light', value: '#6E96BC' }
+    ]
+  });
+}
+</script>
+</div>
+<script>if (window.lucide) { lucide.createIcons({ attrs: { width: 16, height: 16 } }); }</script>
+</body>
+</html>

@@ -9,12 +9,12 @@
 🚧 **早期开发中（WIP）**——协议跑通前没有可用版本。技术方案已定稿：
 
 - **Flutter** 重做 UI/UX，协议层 vendor 自 [ZLinker](https://github.com/opensymph/ZLinker)（MIT）：relay 握手 / 配对证明 / Conversation V4
-- **Riverpod** 状态管理；双栏导航壳（平板双栏、手机单栏+抽屉）
+- **Riverpod** 状态管理；**暗色控制台**默认 + 监控收件箱 IA；平板双栏、手机底栏 3 tab（收件箱 / 设备 / 设置）
 - 中英双语（中文优先）；minSdk 26；arm64-v8a + x86_64
 
 ## Roadmap
 
-- [ ] M0 UI 设计稿（2-3 套风格定稿）
+- [x] M0→M1 UI 设计稿（[设计规范 v2.2](docs/design/design-system.md) · [暗色定稿](docs/design/mockups/m1-console.html) · [浅色可选](docs/design/mockups/m1-console-light.html)；[M0 归档](docs/design/mockups/m0-final.html)）
 - [ ] M1 协议跑通（扫码配对 + 收发消息）
 - [ ] M2 会话核心（流式对话 / 历史导航 / diff 回滚）
 - [ ] M3 全功能对齐（任务 / 工作流 / 定时任务 / 小组件 / 统计）
