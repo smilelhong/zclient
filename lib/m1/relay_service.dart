@@ -10,6 +10,7 @@ import '../protocol/connection_params.dart';
 import '../protocol/conversation.dart';
 import '../protocol/remote_client.dart';
 import '../state/app_kv.dart';
+import '../state/device_store.dart';
 
 /// M1 protocol console state — deliberately raw: this milestone is about
 /// proving the vendored protocol path end to end, not about UI.
@@ -25,6 +26,8 @@ class M1State {
     this.sessionId,
     this.rows = const [],
     this.sending = false,
+    this.devices = const [],
+    this.sessionsTick = 0,
   });
 
   /// Host that has a stored ZCode login JWT (from the WebView harvest).
@@ -42,6 +45,11 @@ class M1State {
   final List<String> rows;
   final bool sending;
 
+  /// Paired desktops (DeviceStore view) + bump counter for the sessions
+  /// index so Riverpod rebuilds list pages on index frames.
+  final List<PairedDevice> devices;
+  final int sessionsTick;
+
   M1State copyWith({
     String? jwtHost,
     String? linkUrl,
@@ -52,6 +60,8 @@ class M1State {
     String? sessionId,
     List<String>? rows,
     bool? sending,
+    List<PairedDevice>? devices,
+    int? sessionsTick,
     bool clearError = false,
     bool clearSession = false,
   }) =>
@@ -65,6 +75,8 @@ class M1State {
         sessionId: clearSession ? null : (sessionId ?? this.sessionId),
         rows: rows ?? this.rows,
         sending: sending ?? this.sending,
+        devices: devices ?? this.devices,
+        sessionsTick: sessionsTick ?? this.sessionsTick,
       );
 }
 
@@ -73,14 +85,21 @@ class M1Controller extends Notifier<M1State> {
   BridgeSession? _bridge;
   ConversationTransport? _conv;
   ConversationSubscription? _sub;
+  SessionsIndexSubscription? _indexSub;
 
   static const loginHost = 'zcode.z.ai';
   static const _linkKey = 'zc.pairing.link';
   static const _sessionKey = 'zc.session.id';
 
+  DeviceStore get _store => DeviceStore.instance;
+
+  /// Sessions index of the connected workspace (live list of sessions).
+  SessionsIndexState? get sessionsIndex => _indexSub?.state;
+
   @override
   M1State build() {
     ref.onDispose(() {
+      _indexSub?.dispose();
       _sub?.dispose();
       _bridge?.dispose();
       _client?.dispose();
@@ -94,17 +113,121 @@ class M1Controller extends Notifier<M1State> {
   /// back in the session.
   Future<void> _restoreSession() async {
     await _checkJwt();
-    if (state.jwtHost == null) return;
-    String? link;
     try {
-      link = await AppKv.instance.getString(_linkKey);
-    } catch (_) {
-      return;
-    }
-    if (link == null || link.isEmpty) return;
-    if (!setLink(link, persist: false)) return;
-    _log('恢复上次配对，自动重连…');
+      await _store.load();
+    } catch (_) {}
+    _syncDevices();
+    if (state.jwtHost == null) return;
+    final active = _store.active;
+    if (active == null) return;
+    if (!setLink(active.link, persist: false)) return;
+    _log('恢复上次配对（${active.name ?? active.sid}），自动重连…');
     await connect();
+  }
+
+  void _syncDevices() {
+    state = state.copyWith(devices: _store.devices);
+  }
+
+  // ------------------------------------------------------------ devices
+
+  /// Adds (or refreshes) a paired desktop from a scanned/pasted link and
+  /// connects to it. Returns false when the link doesn't parse.
+  Future<bool> addDeviceFromLink(String raw) async {
+    final ok = await _store.addFromLink(raw, activate: true);
+    _syncDevices();
+    if (!ok) {
+      _log('配对链接无法解析');
+      return false;
+    }
+    if (!setLink(raw, persist: false)) return false;
+    await connect();
+    return state.phase == 'ready';
+  }
+
+  Future<void> connectDevice(PairedDevice device) async {
+    await _store.activate(device.sid);
+    _syncDevices();
+    if (!setLink(device.link, persist: false)) return;
+    _log('切换设备：${device.name ?? device.sid}');
+    await connect();
+  }
+
+  Future<void> removeDevice(String sid) async {
+    await _store.remove(sid);
+    _syncDevices();
+    _log('已移除设备 $sid');
+    if (_store.active == null && state.params?.deviceSid == sid) {
+      await disconnect();
+    }
+  }
+
+  Future<void> disconnect() async {
+    _indexSub?.dispose();
+    _indexSub = null;
+    _sub?.dispose();
+    _sub = null;
+    _conv = null;
+    _bridge?.dispose();
+    _bridge = null;
+    _client?.dispose();
+    _client = null;
+    state = state.copyWith(
+      phase: 'idle',
+      clearSession: true,
+      rows: const [],
+      clearError: true,
+    );
+    _log('已断开');
+  }
+
+  // ------------------------------------------------------------ sessions
+
+  /// Subscribes the workspace sessions index after the chat transport is
+  /// ready; every index frame bumps [M1State.sessionsTick].
+  Future<void> _subscribeIndex() async {
+    final conv = _conv;
+    if (conv == null) return;
+    try {
+      final sub = await conv.subscribeSessionsIndex().timeout(
+            const Duration(seconds: 20),
+          );
+      _indexSub?.dispose();
+      _indexSub = sub;
+      sub.state.addListener(_onIndex);
+      _onIndex();
+      _log('会话索引就绪（${sub.state.list.length} 个会话）');
+    } catch (e) {
+      _log('会话索引订阅失败: $e');
+    }
+  }
+
+  void _onIndex() {
+    state = state.copyWith(sessionsTick: state.sessionsTick + 1);
+  }
+
+  /// Switches the live chat subscription to another session.
+  Future<void> switchSession(String sessionId) async {
+    final conv = _conv;
+    if (conv == null || sessionId == state.sessionId) return;
+    try {
+      final sub = await conv.subscribe(sessionId).timeout(
+            const Duration(seconds: 20),
+          );
+      _sub?.dispose();
+      _sub = sub;
+      sub.state.addListener(_onRows);
+      _onRows();
+      state = state.copyWith(sessionId: sessionId);
+      unawaited(() async {
+        try {
+          await AppKv.instance.setString(_sessionKey, sessionId);
+        } catch (_) {}
+      }());
+      _log('切换会话: $sessionId');
+    } catch (e) {
+      _log('✗ 切换会话失败: $e');
+    }
   }
 
   void _log(String line) {
@@ -325,8 +448,14 @@ class M1Controller extends Notifier<M1State> {
       _sub = sub;
       sub.state.addListener(_onRows);
       _onRows();
+      final active = _store.active;
+      if (active != null) {
+        await _store.activate(active.sid);
+        _syncDevices();
+      }
       state = state.copyWith(phase: 'ready', sessionId: sessionId);
-      _log('✓ M2 READY — 会话就绪');
+      _log('✓ M3 READY — 会话就绪');
+      unawaited(_subscribeIndex());
     } on RelayTokenException catch (e) {
       state = state.copyWith(phase: 'error', error: '${e.reason}: ${e.message}');
       _log('✗ ${e.reason}: ${e.message}');

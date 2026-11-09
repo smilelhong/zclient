@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/gen/app_localizations.dart';
@@ -381,10 +382,10 @@ class _StatusLineState extends State<_StatusLine>
         const SizedBox(width: 6),
         Text(
           running ? '正在工作' : '已完成',
-          style: Theme.of(context)
-              .textTheme
-              .bodySmall
-              ?.copyWith(fontWeight: FontWeight.w500),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
         ),
         if (meta.isNotEmpty)
           Padding(
@@ -407,7 +408,8 @@ class _StatusLineState extends State<_StatusLine>
   }
 }
 
-/// Assistant text with fenced-code-block awareness + streaming cursor.
+/// Assistant text rendered as markdown (fenced code, lists, emphasis) with
+/// a streaming cursor while the turn is open.
 class _AssistantText extends StatelessWidget {
   const _AssistantText({required this.text, required this.streaming});
 
@@ -417,51 +419,29 @@ class _AssistantText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final blocks = _splitCode(text);
-    final children = <Widget>[];
-    for (final b in blocks) {
-      if (b.code) {
-        children.add(Container(
-          width: double.infinity,
-          margin: const EdgeInsets.symmetric(vertical: 6),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: scheme.primary.withValues(alpha: .05),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Text(
-              b.text,
-              style: const TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 12.5,
-                height: 1.6,
-              ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        MarkdownBody(
+          data: text,
+          selectable: true,
+          styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+            p: const TextStyle(height: 1.6, fontSize: 14),
+            code: TextStyle(
+              fontFamily: 'monospace',
+              fontSize: 12.5,
+              backgroundColor: scheme.primary.withValues(alpha: .07),
             ),
+            codeblockDecoration: BoxDecoration(
+              color: scheme.primary.withValues(alpha: .05),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            listBullet: const TextStyle(fontSize: 14),
           ),
-        ));
-      } else if (b.text.trim().isNotEmpty) {
-        children.add(Padding(
-          padding: const EdgeInsets.symmetric(vertical: 3),
-          child: Text(b.text, style: const TextStyle(height: 1.6, fontSize: 14)),
-        ));
-      }
-    }
-    if (streaming) {
-      children.add(const _Cursor());
-    }
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: children);
-  }
-
-  static List<({String text, bool code})> _splitCode(String src) {
-    final out = <({String text, bool code})>[];
-    final parts = src.split(RegExp(r'^```.*$', multiLine: true));
-    // Split alternates text / code / text / … starting with text.
-    for (var i = 0; i < parts.length; i++) {
-      out.add((text: parts[i], code: i.isOdd));
-    }
-    return out;
+        ),
+        if (streaming) const _Cursor(),
+      ],
+    );
   }
 }
 
