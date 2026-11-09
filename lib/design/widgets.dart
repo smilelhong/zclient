@@ -36,6 +36,8 @@ class ZListRow extends StatelessWidget {
             : ZColors.surface(scheme.brightness),
         borderRadius: BorderRadius.circular(AppRadius.card),
         clipBehavior: Clip.antiAlias,
+        shadowColor: const Color(0x14203A50),
+        elevation: highlighted ? 0 : 1.5,
         child: InkWell(
           borderRadius: BorderRadius.circular(AppRadius.card),
           onTap: onTap,

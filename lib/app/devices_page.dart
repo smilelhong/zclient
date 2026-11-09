@@ -30,12 +30,21 @@ class DevicesPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'ZClient',
-          style: Theme.of(context)
-              .textTheme
-              .headlineSmall
-              ?.copyWith(fontWeight: FontWeight.w500, letterSpacing: -.5),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '设备',
+              style: Theme.of(context)
+                  .textTheme
+                  .headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.w600, letterSpacing: -.5),
+            ),
+            Text(
+              '在手机上接着用电脑里的 ZCode',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
         ),
         actions: [
           IconButton(
@@ -83,6 +92,10 @@ class DevicesPage extends ConsumerWidget {
                 ),
               ),
             ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(28, 4, 16, 0),
+            child: GroupLabel('我的设备'),
+          ),
           Expanded(
             child: devices.isEmpty
                 ? EmptyView(

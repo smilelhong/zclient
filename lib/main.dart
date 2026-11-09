@@ -82,10 +82,10 @@ class _ZClientAppState extends ConsumerState<ZClientApp>
       final isDark = scheme.brightness == Brightness.dark;
       return ThemeData(
         colorScheme: scheme,
-        scaffoldBackgroundColor: ZColors.bg(scheme.brightness),
+        scaffoldBackgroundColor: Colors.transparent,
         useMaterial3: true,
         appBarTheme: AppBarTheme(
-          backgroundColor: ZColors.bg(scheme.brightness),
+          backgroundColor: Colors.transparent,
           scrolledUnderElevation: 0,
           centerTitle: false,
           titleTextStyle: TextStyle(
@@ -96,15 +96,13 @@ class _ZClientAppState extends ConsumerState<ZClientApp>
           ),
         ),
         cardTheme: CardThemeData(
-          elevation: 0,
+          // dsh-Go soft card: shadow only, no border (one elevation device).
+          elevation: 1.5,
           color: ZColors.surface(scheme.brightness),
+          shadowColor: isDark ? Colors.black54 : const Color(0x14203A50),
+          surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.card),
-            side: BorderSide(
-              color: isDark
-                  ? ZColors.darkOutline
-                  : ZColors.lightOutline.withValues(alpha: .7),
-            ),
           ),
         ),
         navigationBarTheme: NavigationBarThemeData(
@@ -188,7 +186,20 @@ class _ZClientAppState extends ConsumerState<ZClientApp>
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
-      home: const AppShell(),
+      // Soft dsh-Go page gradient; dark stays flat (tokens §ZColors).
+      home: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: settings.theme == ThemeMode.dark
+              ? null
+              : const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [ZColors.bgGradTop, ZColors.bgGradBottom],
+                ),
+          color: settings.theme == ThemeMode.dark ? ZColors.darkBg : null,
+        ),
+        child: const AppShell(),
+      ),
     );
   }
 }

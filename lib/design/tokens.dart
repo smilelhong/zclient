@@ -43,6 +43,13 @@ abstract final class ZColors {
   static const diffAdd = Color(0xFF3E9E5C);
   static const diffDel = Color(0xFFD25454);
 
+  // dsh-Go soft page gradient (light): airy blue → near-white
+  static const bgGradTop = Color(0xFFE7EFF7);
+  static const bgGradBottom = Color(0xFFF8FAFC);
+  // soft warning surface for connection errors (replaces the red slab)
+  static const warnSurface = Color(0xFFFDECEA);
+  static const warnText = Color(0xFF9A3324);
+
   // dark
   static const darkBg = Color(0xFF11141A);
   static const darkSurface = Color(0xFF1A1E26);
