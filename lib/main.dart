@@ -4,18 +4,44 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/app_settings.dart';
 import 'app/app_shell.dart';
+import 'app/notify_service.dart';
 import 'design/tokens.dart';
 import 'l10n/gen/app_localizations.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const ProviderScope(child: ZClientApp()));
 }
 
-class ZClientApp extends ConsumerWidget {
+class ZClientApp extends ConsumerStatefulWidget {
   const ZClientApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ZClientApp> createState() => _ZClientAppState();
+}
+
+class _ZClientAppState extends ConsumerState<ZClientApp>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    NotifyService.instance.init();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    NotifyService.instance.onLifecycleStateChanged(state);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // Design-system v1.1: exact tokens (§2.2 light / dark counterparts),
     // quantized rhythm (§6) and one-primary-per-screen discipline.
     final light = ColorScheme.light(

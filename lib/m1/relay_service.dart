@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../app/notify_service.dart';
 import '../auth/relay_token.dart';
 import '../auth/session_auth.dart';
 import '../protocol/connection_params.dart';
@@ -200,6 +201,9 @@ class M1Controller extends Notifier<M1State> {
     );
     return _tasks;
   }
+
+  /// Live workspace bridge for feature pages (automations etc.).
+  BridgeSession? get bridgeForCommands => _bridge;
 
   Future<void> renameSession(String sessionId, String title) async {
     try {
@@ -677,8 +681,45 @@ class M1Controller extends Notifier<M1State> {
 
   void _onRows() {
     final rows = _sub?.state.rows ?? const [];
+    _maybeNotify(rows);
     final rendered = rows.map(_renderRow).toList(growable: false);
     state = state.copyWith(rows: rendered);
+  }
+
+  // ---- notification triggers (P2): turn completed / pending confirm ----
+  String? _lastTurnState;
+  int _lastPendingCount = 0;
+
+  void _maybeNotify(List<Map<String, dynamic>> rows) {
+    final notify = NotifyService.instance;
+    String? turnState;
+    var pending = 0;
+    for (final row in rows) {
+      if (row['kind'] == 'turnHeader') turnState = '${row['state'] ?? ''}';
+    }
+    final snap = _sub?.state.snapshot;
+    final pi = snap?['pendingInteractions'];
+    if (pi is List) pending = pi.length;
+
+    if (_lastTurnState == 'running' &&
+        (turnState == 'completedSuccess' || turnState == 'completed')) {
+      var userText = '';
+      for (final row in rows) {
+        if (row['kind'] == 'userInput' && row['text'] is String) {
+          userText = row['text'] as String;
+        }
+      }
+      final brief = userText.length > 30 ? userText.substring(0, 30) : userText;
+      unawaited(notify.show(
+        '会话已完成',
+        '${brief.isEmpty ? '' : '$brief… · '}${deviceName ?? 'ZCode'}',
+      ));
+    }
+    if (pending > _lastPendingCount) {
+      unawaited(notify.show('等待你的确认', 'Agent 请求批准一个操作'));
+    }
+    _lastTurnState = turnState;
+    _lastPendingCount = pending;
   }
 
   String _renderRow(Map row) {

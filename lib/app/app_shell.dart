@@ -58,7 +58,16 @@ class _AppShellState extends State<AppShell> {
               thickness: 1,
               color: Theme.of(context).colorScheme.outline.withValues(alpha: .4),
             ),
-            Expanded(child: pages[_tab]),
+            Expanded(
+              // Wide screens keep a reading column (design §4.3): the list
+              // content centers at max 720dp instead of stretching full-bleed.
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 760),
+                  child: pages[_tab],
+                ),
+              ),
+            ),
           ],
         );
       }

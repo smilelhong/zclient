@@ -19,6 +19,11 @@ dependencies:
   # M3: markdown rendering in assistant replies
   flutter_markdown: ^0.7.0
 
+  # P2: notifications, update check, browser handoff
+  flutter_local_notifications: ^19.0.0
+  package_info_plus: ^8.0.0
+  url_launcher: ^6.0.0
+
   # Vendored protocol layer runtime deps (lib/protocol, lib/auth — see THIRD_PARTY_NOTICES)
   crypto: ^3.0.0
   web_socket_channel: ^3.0.0

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/gen/app_localizations.dart';
 import '../m1/relay_service.dart';
 import '../m1/console_page.dart';
 import 'app_settings.dart';
+import 'automations_page.dart';
+import 'update_service.dart';
 
 /// M3 settings hub (A-枢纽页骨架): 外观(主题/语言) · 连接(诊断/断开) · 帮助与关于.
 class SettingsPage extends ConsumerWidget {
@@ -42,6 +45,51 @@ class SettingsPage extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         children: [
+          // ---- 概览卡 (A-枢纽页骨架, screens.md #14) ----
+          Card(
+            elevation: 0,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      s.jwtHost != null ? Icons.person : Icons.person_outline,
+                      color: scheme.onPrimaryContainer,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          s.jwtHost != null ? '已登录' : '未登录',
+                          style: const TextStyle(
+                              fontSize: 14.5, fontWeight: FontWeight.w500),
+                        ),
+                        Text(
+                          '${s.devices.length} 台设备 · '
+                          '${s.phase == 'ready' ? '1 台在线' : '0 台在线'}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
           // ---- 连接 ----
           _Section(label: t.sectionConnection),
           Card(
@@ -64,6 +112,18 @@ class SettingsPage extends ConsumerWidget {
                     title: Text(t.disconnect),
                     onTap: () => ctrl.disconnect(),
                   ),
+                ListTile(
+                  leading: const Icon(Icons.schedule),
+                  title: const Text('定时任务'),
+                  subtitle: Text(s.phase == 'ready' ? '桌面端的自动化' : '连接后可用'),
+                  enabled: s.phase == 'ready',
+                  onTap: s.phase == 'ready'
+                      ? () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => const AutomationsPage()),
+                          )
+                      : null,
+                ),
               ],
             ),
           ),
@@ -110,6 +170,12 @@ class SettingsPage extends ConsumerWidget {
                     MaterialPageRoute(builder: (_) => const M1ConsolePage()),
                   ),
                 ),
+                ListTile(
+                  leading: const Icon(Icons.system_update),
+                  title: const Text('检查更新'),
+                  subtitle: const Text('GitHub Releases'),
+                  onTap: () => _checkUpdate(context),
+                ),
                 const ListTile(
                   leading: Icon(Icons.info_outline),
                   title: Text('ZClient'),
@@ -130,6 +196,49 @@ class SettingsPage extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _checkUpdate(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    messenger.showSnackBar(
+      const SnackBar(content: Text('正在检查更新…')),
+    );
+    try {
+      final check = await UpdateCheck.run();
+      if (!context.mounted) return;
+      if (!check.hasUpdate) {
+        messenger.showSnackBar(
+          SnackBar(content: Text('已是最新版（${check.currentVersion}）')),
+        );
+        return;
+      }
+      final go = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text('发现新版本 ${check.latestVersion}'),
+          content: const Text('前往 GitHub Releases 下载（浏览器打开）？'),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('稍后')),
+            FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('打开')),
+          ],
+        ),
+      );
+      if (go == true) {
+        await launchUrl(
+          Uri.parse('https://github.com/${UpdateCheck.repo}/releases/latest'),
+          mode: LaunchMode.externalApplication,
+        );
+      }
+    } catch (_) {
+      messenger.showSnackBar(const SnackBar(content: Text('检查更新失败（网络）')));
+    }
+    // keep navigator referenced for future in-page routing
+    navigator.canPop();
   }
 
   Future<void> _pickTheme(
