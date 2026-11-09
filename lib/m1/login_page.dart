@@ -1,8 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+
+import '../auth/session_auth.dart';
 
 /// M1 login: opens the official `https://<host>/login` page in a WebView and
 /// harvests `localStorage["zcodejwttoken"]` (the V4 terminal-token source).
@@ -43,7 +44,7 @@ class _M1LoginPageState extends State<M1LoginPage> {
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..loadRequest(uri);
     _harvestTimer = Timer.periodic(
-      const Duration(seconds: 2),
+      const Duration(milliseconds: 900),
       (_) => _probe(),
     );
   }
@@ -63,9 +64,6 @@ class _M1LoginPageState extends State<M1LoginPage> {
     }
     if (jwt == _candidateJwt) {
       _stablePolls++;
-      // Auto-capture once the value is stable across two consecutive polls
-      // (~4s), so a login that just landed is not half-written.
-      if (_stablePolls >= 2) _capture();
     } else {
       _candidateJwt = jwt;
       _stablePolls = 0;
@@ -80,18 +78,9 @@ class _M1LoginPageState extends State<M1LoginPage> {
     } catch (_) {
       return null;
     }
-    if (raw is! String || raw.isEmpty) return null;
-    try {
-      final decoded = jsonDecode(raw);
-      if (decoded is Map) {
-        final v = decoded['zcodejwttoken'];
-        return v is String ? v : null;
-      }
-    } catch (_) {
-      // runJavaScriptReturningResult may hand back the bare string.
-      return raw.length > 40 ? raw : null;
-    }
-    return null;
+    // Vendored parser: handles Map / bare string / Android WebView's
+    // double-JSON-encoding, and validates the JWT shape before use.
+    return jwtFromStorageProbe(raw);
   }
 
   void _capture() {
@@ -131,7 +120,7 @@ class _M1LoginPageState extends State<M1LoginPage> {
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Text(
-                    '检测到登录凭证（${_candidateJwt!.length} 字符），稳定后自动抓取，或点右上角立即抓取',
+                    '检测到登录凭证（${_candidateJwt!.length} 字符）— 登录成想要的账号后，点右上角「抓取凭证」',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ),

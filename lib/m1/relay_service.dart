@@ -116,6 +116,34 @@ class M1Controller extends Notifier<M1State> {
     await sessionAuth.saveJwt(host, jwt);
     state = state.copyWith(jwtHost: host);
     _log('登录凭证已保存（$host，${jwt.length} 字符）');
+    _logJwtHint(jwt);
+  }
+
+  /// Decodes the JWT payload (no network) so the account on the phone can be
+  /// eyeballed against the desktop's account when pairing fails.
+  void _logJwtHint(String jwt) {
+    try {
+      final parts = jwt.split('.');
+      if (parts.length != 3) {
+        _log('JWT 非标准三段式，无法解码比对');
+        return;
+      }
+      final normalized = base64Url.normalize(parts[1]);
+      final map = jsonDecode(utf8.decode(base64Url.decode(normalized)));
+      if (map is! Map) return;
+      final keys = map.keys.join(',');
+      final sub = '${map['sub'] ?? map['uid'] ?? map['user_id'] ?? '?'}';
+      final masked = sub.length <= 6
+          ? sub
+          : '${sub.substring(0, 3)}…${sub.substring(sub.length - 3)}';
+      final exp = map['exp'];
+      final expStr = exp is int
+          ? DateTime.fromMillisecondsSinceEpoch(exp * 1000).toIso8601String()
+          : '$exp';
+      _log('JWT 账号标识: $masked · 过期: $expStr · payload键: $keys');
+    } catch (e) {
+      _log('JWT 解码失败: $e');
+    }
   }
 
   /// Accepts a pasted or scanned pairing link.
@@ -172,6 +200,14 @@ class M1Controller extends Notifier<M1State> {
         accessTokenProvider: tokenProvider,
       );
       _client = client;
+      client.relay.failures.listen((f) {
+        _log('relay 失败: ${f.reason} — ${f.message}');
+        state = state.copyWith(
+          phase: 'error',
+          error: '配对失败（${f.reason}）：${f.message}',
+          clearError: true,
+        );
+      });
       _log('连接 relay…');
       await client.connect().timeout(const Duration(seconds: 30));
       _log('socket 已建立，等待配对…');
