@@ -351,7 +351,29 @@ class M1Controller extends Notifier<M1State> {
           );
         }
         _log('token 已铸造（${minted.length} 字符）');
-        tokenProvider = () async => minted;
+        // Relay tokens live ~60s and are single-use: the primed value pays
+        // for the first dial only; every reconnect must mint a fresh one
+        // (reusing the stale token is what turns a transient network blip
+        // into a permanent 401 reconnect loop).
+        String? primed = minted;
+        tokenProvider = () async {
+          final p = primed;
+          if (p != null && p.isNotEmpty) {
+            primed = null;
+            return p;
+          }
+          final fresh = await issueTerminalRelayTokenForHost(
+            host: params.source.host,
+            secure: params.uriSchemeIsSecure,
+          ).timeout(const Duration(seconds: 20));
+          if (fresh == null || fresh.isEmpty) {
+            throw const RelayTokenException(
+              'auth-required',
+              '登录已失效，请重新登录',
+            );
+          }
+          return fresh;
+        };
       } else {
         _log('v3 链接 · 走 HMAC 证明路径');
       }
