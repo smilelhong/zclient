@@ -1,0 +1,37 @@
+name: zclient
+description: "ZClient - ZCode remote control client for Android phones & tablets. Unofficial."
+publish_to: "none"
+
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^3.0.0
+
+  # Vendored protocol layer runtime deps (lib/protocol, lib/auth — see THIRD_PARTY_NOTICES)
+  crypto: ^3.0.0
+  web_socket_channel: ^3.0.0
+  http: ^1.0.0
+  shared_preferences: ^2.2.0
+  clock: ^1.1.0
+
+  # M1: pairing & login
+  mobile_scanner: ^7.0.0
+  webview_flutter: ^4.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  generate: true

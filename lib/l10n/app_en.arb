@@ -1,0 +1,21 @@
+{
+  "@@locale": "en",
+  "m1Title": "ZClient · M1 Protocol Check",
+  "m1Intro": "This milestone proves the vendored protocol path: login → QR pairing → send & receive",
+  "login": "Sign in to ZCode",
+  "loggedIn": "Signed in: {host}",
+  "loggedInPlaceholder": "Not signed in",
+  "scanPair": "Scan pairing QR",
+  "linkReady": "Link ready · v{version}",
+  "connect": "Connect",
+  "send": "Send",
+  "messageHint": "Type a message to verify streaming replies…",
+  "transcript": "Conversation",
+  "log": "Protocol log",
+  "phase_idle": "Idle",
+  "phase_connecting": "Connecting",
+  "phase_paired": "Paired",
+  "phase_bootstrapped": "Bootstrapped",
+  "phase_ready": "Ready",
+  "phase_error": "Error"
+}

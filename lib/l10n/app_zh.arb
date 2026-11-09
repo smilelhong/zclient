@@ -1,0 +1,23 @@
+{
+  "@@locale": "zh",
+  "m1Title": "ZClient · M1 协议验证",
+  "m1Intro": "本里程碑验证 vendored 协议链路：登录 → 扫码配对 → 收发消息",
+  "login": "登录 ZCode",
+  "loggedIn": "已登录：{host}",
+  "loggedInPlaceholder": "未登录",
+  "@loggedIn": { "placeholders": { "host": { "type": "String" } } },
+  "scanPair": "扫码配对",
+  "linkReady": "链接就绪 · v{version}",
+  "@linkReady": { "placeholders": { "version": { "type": "String" } } },
+  "connect": "连接",
+  "send": "发送",
+  "messageHint": "输入消息，验证流式回复…",
+  "transcript": "会话",
+  "log": "协议日志",
+  "phase_idle": "待机",
+  "phase_connecting": "连接中",
+  "phase_paired": "已配对",
+  "phase_bootstrapped": "已引导",
+  "phase_ready": "就绪",
+  "phase_error": "出错"
+}

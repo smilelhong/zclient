@@ -19,3 +19,6 @@ build/
 .idea/
 .vscode/
 *.swp
+
+# Generated localizations
+lib/l10n/gen/
