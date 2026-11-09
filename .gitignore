@@ -1,0 +1,21 @@
+# Local tool markers
+.video_agent/
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment & secrets
+.env
+.env.*
+
+# OS
+.DS_Store
+
+# Editor
+.idea/
+.vscode/
+*.swp
