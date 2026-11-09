@@ -232,9 +232,35 @@ class M1Controller extends Notifier<M1State> {
 
   void _log(String line) {
     debugPrint('[m1] $line');
+    // 401 circuit breaker (parity #4/#5): the vendored client treats a
+    // failed upgrade as retryable and keeps re-minting forever. Two
+    // consecutive 401s mean the credential itself is dead — stop the
+    // loop and route the user to re-login instead.
+    if (line.contains('status code: 401')) {
+      _consecutive401++;
+      if (_consecutive401 >= 2) {
+        _client?.dispose();
+        _client = null;
+        _consecutive401 = 0;
+        _brokeOn401 = true;
+        state = state.copyWith(
+          phase: 'error',
+          error: '登录凭证已失效（relay 拒绝）——请到 设置 → 登录 重新登录后再连接',
+          clearError: true,
+        );
+        _log('⛔ 连续 401：已停止重连，请重新登录');
+        return;
+      }
+    } else if (line.contains('RelayState.paired') ||
+        line.contains('auth_ack')) {
+      _consecutive401 = 0;
+    }
     final log = [...state.log, '${_ts()} $line'];
     state = state.copyWith(log: log.length > 400 ? log.sublist(log.length - 400) : log);
   }
+
+  int _consecutive401 = 0;
+  bool _brokeOn401 = false;
 
   String _ts() {
     final n = DateTime.now();
@@ -268,10 +294,35 @@ class M1Controller extends Notifier<M1State> {
   }
 
   Future<void> onLoginHarvested(String host, String jwt) async {
-    await sessionAuth.saveJwt(host, jwt);
-    state = state.copyWith(jwtHost: host);
-    _log('登录凭证已保存（$host，${jwt.length} 字符）');
-    _logJwtHint(jwt);
+    // Harvest-time validation (parity item #1): a mint the relay rejects
+    // later is a broken login — prove the JWT can mint BEFORE saving it,
+    // so a half-finished SSO state can never reach the pairing flow
+    // (root cause of the pad's 401 loop, 2026-11-09).
+    _log('验证登录凭证（试铸 relay token）…');
+    try {
+      await issueTerminalRelayToken(
+        origin: Uri(scheme: 'https', host: host),
+        jwt: jwt,
+      ).timeout(const Duration(seconds: 15));
+      await sessionAuth.saveJwt(host, jwt);
+      state = state.copyWith(jwtHost: host, clearError: true);
+      _log('✓ 登录凭证可用，已保存（$host）');
+      _logJwtHint(jwt);
+    } on RelayTokenException catch (e) {
+      _log('✗ 此登录不可用（${e.reason}），未保存');
+      state = state.copyWith(
+        phase: 'error',
+        error: '登录凭证无效——请在登录页退出当前账号，改用「使用 BigModel 账号登录」重新登录后再抓取',
+        clearError: true,
+      );
+    } catch (e) {
+      _log('✗ 验证失败: $e（凭证未保存）');
+      state = state.copyWith(
+        phase: 'error',
+        error: '登录验证失败（网络），请稍后重试抓取',
+        clearError: true,
+      );
+    }
   }
 
   /// Decodes the JWT payload (no network) so the account on the phone can be
@@ -482,6 +533,12 @@ class M1Controller extends Notifier<M1State> {
       state = state.copyWith(phase: 'error', error: '${e.reason}: ${e.message}');
       _log('✗ ${e.reason}: ${e.message}');
     } catch (e) {
+      if (_brokeOn401) {
+        // The breaker already set the actionable re-login message; the
+        // dispose-induced exception here must not overwrite it.
+        _brokeOn401 = false;
+        return;
+      }
       // Keep raw detail in the log; the banner carries a human line.
       _log('✗ $e');
       state = state.copyWith(

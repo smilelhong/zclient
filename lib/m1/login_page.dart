@@ -54,7 +54,17 @@ class _M1LoginPageState extends State<M1LoginPage> {
   late final WebViewController _controller;
   Timer? _harvestTimer;
   String? _candidateJwt;
+  DateTime? _candidateChangedAt;
   bool _captured = false;
+
+  /// zic parity: the candidate must hold steady for 2s before capture is
+  /// offered, so a half-finished SSO redirect never gets grabbed mid-write.
+  static const _stabilityWindow = Duration(seconds: 2);
+
+  bool get _candidateStable =>
+      _candidateJwt != null &&
+      _candidateChangedAt != null &&
+      DateTime.now().difference(_candidateChangedAt!) >= _stabilityWindow;
 
   @override
   void initState() {
@@ -80,9 +90,14 @@ class _M1LoginPageState extends State<M1LoginPage> {
     unawaited(_autoClickBigModel());
     final jwt = await _extractJwt();
     if (jwt == null || jwt.isEmpty) return;
+    final wasStable = _candidateStable;
     if (jwt != _candidateJwt) {
       _candidateJwt = jwt;
+      _candidateChangedAt = DateTime.now();
       if (mounted) setState(() {});
+    } else if (!wasStable && _candidateStable && mounted) {
+      // Crossing the stability threshold re-enables the capture button.
+      setState(() {});
     }
   }
 
@@ -124,7 +139,7 @@ class _M1LoginPageState extends State<M1LoginPage> {
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: FilledButton.tonal(
-              onPressed: _candidateJwt == null ? null : _capture,
+              onPressed: _candidateStable ? _capture : null,
               child: const Text('抓取凭证'),
             ),
           ),
@@ -143,7 +158,9 @@ class _M1LoginPageState extends State<M1LoginPage> {
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Text(
-                    '检测到登录凭证（${_candidateJwt!.length} 字符）— 登录成想要的账号后，点右上角「抓取凭证」',
+                    _candidateStable
+                        ? '检测到登录凭证（${_candidateJwt!.length} 字符）— 确认是 BigModel 账号后，点右上角「抓取凭证」（会先验证可用性）'
+                        : '检测到登录凭证，等待稳定（2 秒）…',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ),
