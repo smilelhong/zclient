@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../design/status.dart';
+import '../design/tokens.dart';
+import '../design/widgets.dart';
 import '../l10n/gen/app_localizations.dart';
 import '../m1/login_page.dart';
 import '../m1/relay_service.dart';
@@ -82,39 +85,52 @@ class DevicesPage extends ConsumerWidget {
             ),
           Expanded(
             child: devices.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.devices_other,
-                            size: 56, color: scheme.primary.withValues(alpha: .3)),
-                        const SizedBox(height: 12),
-                        Text(t.noDevices,
-                            style: Theme.of(context).textTheme.bodyMedium),
-                        const SizedBox(height: 4),
-                        Text(
-                          t.noDevicesHint,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
+                ? EmptyView(
+                    icon: Icons.devices_other,
+                    title: t.noDevices,
+                    message: t.noDevicesHint,
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
+                        horizontal: AppSpace.screen - 4, vertical: 8),
                     itemCount: devices.length,
                     itemBuilder: (_, i) {
                       final d = devices[i];
                       final isActive = d.sid == activeSid;
                       final connecting =
                           isActive && s.phase == 'connecting';
-                      return _DeviceCard(
-                        device: d,
-                        active: isActive && s.phase == 'ready',
-                        connecting: connecting,
-                        error: isActive && s.phase == 'error',
-                        onTap: () => ctrl.connectDevice(d),
-                        onRemove: () => _confirmRemove(context, ctrl, d),
+                      final error = isActive && s.phase == 'error';
+                      return StaggerIn(
+                        index: i,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: ZListRow(
+                            icon: Icons.monitor,
+                            title: d.name ?? d.sid,
+                            highlighted: isActive && s.phase == 'ready',
+                            subtitle: error
+                                ? Text(s.error ?? t.phase_error)
+                                : connecting
+                                    ? StatusLineText.running(
+                                        label: t.phase_connecting)
+                                    : isActive && s.phase == 'ready'
+                                        ? StatusLineText.idle(
+                                            label: t.phase_ready)
+                                        : Text(t.deviceIdle),
+                            trailing: error
+                                ? Icon(Icons.error_outline,
+                                    color: scheme.error, size: 20)
+                                : isActive && s.phase == 'ready'
+                                    ? Icon(Icons.check_circle,
+                                        color: ZColors.okDot(
+                                            scheme.brightness),
+                                        size: 20)
+                                    : const Icon(Icons.chevron_right),
+                            onTap: () => ctrl.connectDevice(d),
+                            onLongPress: () =>
+                                _confirmRemove(context, ctrl, d),
+                          ),
+                        ),
                       );
                     },
                   ),
@@ -164,104 +180,5 @@ class DevicesPage extends ConsumerWidget {
       ),
     );
     if (ok == true) await ctrl.removeDevice(d.sid);
-  }
-}
-
-class _DeviceCard extends StatelessWidget {
-  const _DeviceCard({
-    required this.device,
-    required this.active,
-    required this.connecting,
-    required this.error,
-    required this.onTap,
-    required this.onRemove,
-  });
-
-  final PairedDevice device;
-  final bool active;
-  final bool connecting;
-  final bool error;
-  final VoidCallback onTap;
-  final VoidCallback onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final t = AppLocalizations.of(context);
-    final status = error
-        ? t.phase_error
-        : connecting
-            ? t.phase_connecting
-            : active
-                ? t.phase_ready
-                : null;
-
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: active
-              ? scheme.primary.withValues(alpha: .5)
-              : scheme.outline.withValues(alpha: .4),
-        ),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: onTap,
-        onLongPress: onRemove,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: active
-                      ? scheme.primaryContainer
-                      : scheme.surfaceContainerHighest.withValues(alpha: .5),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(
-                  Icons.monitor,
-                  color: active ? scheme.onPrimaryContainer : scheme.outline,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      device.name ?? device.sid,
-                      style: const TextStyle(
-                          fontSize: 14.5, fontWeight: FontWeight.w500),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      status ?? t.deviceIdle,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: active ? scheme.tertiary : null,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-              if (status != null && !error)
-                Icon(
-                  active ? Icons.check_circle : Icons.sync,
-                  size: 18,
-                  color: active ? scheme.tertiary : scheme.primary,
-                ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline, size: 20),
-                onPressed: onRemove,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }

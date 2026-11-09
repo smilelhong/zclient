@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../design/status.dart';
+import '../design/tokens.dart';
+import '../design/widgets.dart';
 import '../l10n/gen/app_localizations.dart';
 import '../m1/relay_service.dart';
 import '../m2/chat_screen.dart';
@@ -57,26 +60,15 @@ class _SessionsPageState extends ConsumerState<SessionsPage> {
         children: [
           const ConnectionBanner(),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: Row(
-              children: [
-                _FilterChip(
-                  label: t.filterAll,
-                  selected: _filter == 'all',
-                  onTap: () => setState(() => _filter = 'all'),
-                ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: t.filterRunning,
-                  selected: _filter == 'running',
-                  onTap: () => setState(() => _filter = 'running'),
-                ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: t.filterDone,
-                  selected: _filter == 'done',
-                  onTap: () => setState(() => _filter = 'done'),
-                ),
+            padding: const EdgeInsets.fromLTRB(AppSpace.screen, 8,
+                AppSpace.screen, 4),
+            child: ZFilterChips<String>(
+              selected: _filter,
+              onSelect: (v) => setState(() => _filter = v),
+              options: [
+                ('all', t.filterAll),
+                ('running', t.filterRunning),
+                ('done', t.filterDone),
               ],
             ),
           ),
@@ -101,22 +93,68 @@ class _SessionsPageState extends ConsumerState<SessionsPage> {
                             await ctrl.switchSession(s.sessionId ?? ''),
                         child: ListView.builder(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
+                              horizontal: AppSpace.screen - 4, vertical: 8),
                           itemCount: filtered.length,
                           itemBuilder: (_, i) {
                             final e = filtered[i];
-                            return _SessionRow(
-                              entry: e,
-                              active: e.sessionId == s.sessionId,
-                              onTap: () async {
-                                await ctrl.switchSession(e.sessionId);
-                                if (context.mounted) {
-                                  await Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                        builder: (_) => const ChatScreen()),
-                                  );
-                                }
-                              },
+                            final running = e.phase == 'running' ||
+                                e.phase == 'prewarming';
+                            return StaggerIn(
+                              index: i,
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: ZListRow(
+                                  icon: running
+                                      ? Icons.autorenew
+                                      : Icons.task_alt_outlined,
+                                  title: e.title.isEmpty
+                                      ? t.untitledSession
+                                      : e.title,
+                                  highlighted: e.sessionId == s.sessionId,
+                                  subtitle: (e.lastAssistantPreview ?? '')
+                                          .isNotEmpty
+                                      ? Text(
+                                          _plaintext(e.lastAssistantPreview!),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        )
+                                      : null,
+                                  trailing: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      running
+                                          ? const StatusDot.running()
+                                          : StatusDot.solid(ZColors.okDot(
+                                              Theme.of(context)
+                                                  .colorScheme
+                                                  .brightness)),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _relativeTime(e.lastActivityAt),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(
+                                              fontFeatures:
+                                                  tabularNumbers,
+                                              fontSize: 11,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                  onTap: () async {
+                                    await ctrl.switchSession(e.sessionId);
+                                    if (context.mounted) {
+                                      await Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                            builder: (_) =>
+                                                const ChatScreen()),
+                                      );
+                                    }
+                                  },
+                                ),
+                              ),
                             );
                           },
                         ),
@@ -128,131 +166,29 @@ class _SessionsPageState extends ConsumerState<SessionsPage> {
   }
 }
 
-class _FilterChip extends StatelessWidget {
-  const _FilterChip(
-      {required this.label, required this.selected, required this.onTap});
 
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
+/// Session-page helpers (plain text preview + relative time).
+String _plaintext(String src) => src
+    .replaceAll(RegExp(r'\*\*?([^*]+)\*\*?'), r'$1')
+    .replaceAll('`', '')
+    .replaceAll(RegExp(r'^#+\s*'), '')
+    .trim();
 
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFF26282E) : Colors.transparent,
-          borderRadius: BorderRadius.circular(99),
-          border: Border.all(
-            color: selected
-                ? const Color(0xFF26282E)
-                : scheme.outline.withValues(alpha: .5),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w500,
-            color: selected ? Colors.white : scheme.onSurface,
-          ),
-        ),
-      ),
-    );
+String _relativeTime(int ms) {
+  final dt = DateTime.fromMillisecondsSinceEpoch(ms);
+  final now = DateTime.now();
+  final sameDay =
+      dt.year == now.year && dt.month == now.month && dt.day == now.day;
+  if (sameDay) {
+    final h = dt.hour.toString().padLeft(2, '0');
+    final m = dt.minute.toString().padLeft(2, '0');
+    return '$h:$m';
   }
-}
-
-class _SessionRow extends StatelessWidget {
-  const _SessionRow({required this.entry, required this.active, required this.onTap});
-
-  final SessionEntry entry;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final t = AppLocalizations.of(context);
-    final running =
-        entry.phase == 'running' || entry.phase == 'prewarming';
-
-    return Card(
-      elevation: 0,
-      color: active ? scheme.primaryContainer.withValues(alpha: .35) : null,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          child: Row(
-            children: [
-              Icon(
-                running ? Icons.autorenew : Icons.check_circle_outline,
-                size: 20,
-                color: running ? scheme.primary : scheme.outline,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      entry.title.isEmpty ? t.untitledSession : entry.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w500),
-                    ),
-                    if ((entry.lastAssistantPreview ?? '').isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(
-                          _plaintext(entry.lastAssistantPreview!),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                _relativeTime(entry.lastActivityAt),
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  final yesterday = now.subtract(const Duration(days: 1));
+  if (dt.year == yesterday.year &&
+      dt.month == yesterday.month &&
+      dt.day == yesterday.day) {
+    return '昨天';
   }
-
-  static String _relativeTime(int ms) {
-    final delta = DateTime.now().millisecondsSinceEpoch - ms;
-    if (delta < 0) return '';
-    final min = delta ~/ 60000;
-    if (min < 1) return '刚刚';
-    if (min < 60) return '$min 分钟前';
-    final h = min ~/ 60;
-    if (h < 24) return '$h 小时前';
-    final d = h ~/ 24;
-    if (d < 7) return '$d 天前';
-    return '${DateTime.fromMillisecondsSinceEpoch(ms).month}/'
-        '${DateTime.fromMillisecondsSinceEpoch(ms).day}';
-  }
-
-  /// Strips markdown noise so list previews read as plain text.
-  static String _plaintext(String src) => src
-      .replaceAll(RegExp(r'\*\*?([^*]+)\*\*?'), r'$1')
-      .replaceAll('`', '')
-      .replaceAll(RegExp(r'^#+\s*'), '')
-      .trim();
+  return '${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
 }

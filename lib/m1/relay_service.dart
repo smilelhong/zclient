@@ -460,9 +460,29 @@ class M1Controller extends Notifier<M1State> {
       state = state.copyWith(phase: 'error', error: '${e.reason}: ${e.message}');
       _log('✗ ${e.reason}: ${e.message}');
     } catch (e) {
-      state = state.copyWith(phase: 'error', error: '$e');
+      // Keep raw detail in the log; the banner carries a human line.
       _log('✗ $e');
+      state = state.copyWith(
+        phase: 'error',
+        error: _friendlyError('$e'),
+        clearError: true,
+      );
     }
+  }
+
+  /// Maps raw exceptions to one line a user can act on (design: errors
+  /// name the problem and the recovery — never a stack-flavored prefix).
+  static String _friendlyError(String raw) {
+    if (raw.contains('Bad state') || raw.contains('relay error')) {
+      return '连接中断 — 桌面端可能离线或远程控制已关闭，请稍后重试';
+    }
+    if (raw.contains('TimeoutException') || raw.contains('timed out')) {
+      return '连接超时 — 请检查网络后重试';
+    }
+    if (raw.contains('SocketException') || raw.contains('Failed host')) {
+      return '网络不可达 — 请检查网络后重试';
+    }
+    return '连接失败，请重试（详情见协议日志）';
   }
 
   Map<String, dynamic>? _firstWorkspace(dynamic workspaces) {
