@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../design/tokens.dart';
 import '../l10n/gen/app_localizations.dart';
 import '../m1/relay_service.dart';
 import '../m1/console_page.dart';
@@ -34,12 +35,19 @@ class SettingsPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          t.tabSettings,
-          style: Theme.of(context)
-              .textTheme
-              .headlineSmall
-              ?.copyWith(fontWeight: FontWeight.w500, letterSpacing: -.5),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              t.tabSettings,
+              style: Theme.of(context)
+                  .textTheme
+                  .headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.w600, letterSpacing: -.5),
+            ),
+            Text('登录、外观与关于',
+                style: Theme.of(context).textTheme.bodySmall),
+          ],
         ),
       ),
       body: ListView(
@@ -76,10 +84,22 @@ class SettingsPage extends ConsumerWidget {
                           style: const TextStyle(
                               fontSize: 14.5, fontWeight: FontWeight.w500),
                         ),
-                        Text(
-                          '${s.devices.length} 台设备 · '
-                          '${s.phase == 'ready' ? '1 台在线' : '0 台在线'}',
-                          style: Theme.of(context).textTheme.bodySmall,
+                        Row(
+                          children: [
+                            Container(
+                              width: 7,
+                              height: 7,
+                              decoration: const BoxDecoration(
+                                  color: ZColors.greenDot,
+                                  shape: BoxShape.circle),
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              '${s.devices.length} 台设备 · '
+                              '${s.phase == 'ready' ? '1 台在线' : '0 台在线'}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
                         ),
                       ],
                     ),

@@ -186,20 +186,26 @@ class _ZClientAppState extends ConsumerState<ZClientApp>
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
-      // Soft dsh-Go page gradient; dark stays flat (tokens §ZColors).
-      home: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: settings.theme == ThemeMode.dark
-              ? null
-              : const LinearGradient(
-                  begin: Alignment(-1, -1),
-                  end: Alignment(1, 1),
-                  colors: [ZColors.bgGradTop, ZColors.bgGradBottom],
-                ),
-          color: settings.theme == ThemeMode.dark ? ZColors.darkBg : null,
-        ),
-        child: const HomeShell(),
-      ),
+      builder: (context, child) {
+        // Soft dsh-Go page gradient behind EVERY route (pushed settings
+        // and devices pages must not fall through to a black canvas);
+        // dark stays flat.
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: settings.theme == ThemeMode.dark
+                ? null
+                : const LinearGradient(
+                    begin: Alignment(-1, -1),
+                    end: Alignment(1, 1),
+                    colors: [ZColors.bgGradTop, ZColors.bgGradBottom],
+                  ),
+            color:
+                settings.theme == ThemeMode.dark ? ZColors.darkBg : null,
+          ),
+          child: child,
+        );
+      },
+      home: const HomeShell(),
     );
   }
 }

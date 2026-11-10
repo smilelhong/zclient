@@ -126,7 +126,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               // ---- message list (scrolls under the floating chrome) ----
               ListView.builder(
                 controller: _scroll,
-                padding: const EdgeInsets.fromLTRB(16, 64, 16, 148),
+                padding: const EdgeInsets.fromLTRB(16, 80, 16, 148),
                 itemCount: turns.length + 1,
                 itemBuilder: (context, i) {
                   if (i == 0) {
@@ -169,25 +169,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               onPressed: () =>
                                   Navigator.of(context).maybePop(),
                             ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              s.sessionId != null ? '会话' : t.transcript,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleSmall
-                                  ?.copyWith(fontWeight: FontWeight.w500),
-                            ),
-                            Text(
-                              '${ctrl.deviceName ?? 'ZCode'} · ${_stateLabel(st, t)}',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
-                        ),
-                      ),
-                      // 停止按钮: turn running → stop icon in the top bar.
                       const SizedBox(width: 10),
                       _GlassCapsule(
                         child: Column(
@@ -993,7 +974,7 @@ class _GlassCapsule extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
-        color: scheme.surface.withValues(alpha: .9),
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(99),
         boxShadow: const [
           BoxShadow(

@@ -55,10 +55,10 @@ abstract final class ZColors {
   // dark
   static const darkBg = Color(0xFF11141A);
   static const darkSurface = Color(0xFF1A1E26);
-  static const darkPrimary = Color(0xFF8FB3D9);
-  static const darkOnPrimary = Color(0xFF0E1420);
-  static const darkPc = Color(0xFF2B4A6E);
-  static const darkOnPc = Color(0xFFD9E4F0);
+  static const darkPrimary = Color(0xFF8FC6CC); // light teal on dark
+  static const darkOnPrimary = Color(0xFF06272B);
+  static const darkPc = Color(0xFF124A50);
+  static const darkOnPc = Color(0xFFCDE9EC);
   static const darkOutline = Color(0xFF2A2F3A);
   static const darkSuccess = Color(0xFF7BD88F);
 
