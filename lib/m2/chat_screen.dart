@@ -19,9 +19,10 @@ class ChatScreen extends ConsumerStatefulWidget {
   /// [embedded] = lives inside HomeShell (wide: docked beside the drawer,
   /// narrow: under the root scaffold with the drawer). Non-embedded keeps
   /// the standalone pushed-page behavior (back button).
-  const ChatScreen({super.key, this.embedded = false});
+  const ChatScreen({super.key, this.embedded = false, this.onToggleDrawer});
 
   final bool embedded;
+  final VoidCallback? onToggleDrawer;
 
   @override
   ConsumerState<ChatScreen> createState() => _ChatScreenState();
@@ -1176,7 +1177,6 @@ class _SendKeyState extends State<_SendKey>
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final active = widget.hasText && !widget.sending;
     final isStop = widget.isRunning;
 

@@ -9,11 +9,18 @@ import 'z_drawer.dart';
 /// conversation list, the device identity bar (switcher + settings), and
 /// the 新会话 primary action. Landscape keeps the drawer docked as a
 /// floating panel; portrait opens it as a slightly narrow side sheet.
-class HomeShell extends ConsumerWidget {
+class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeShell> createState() => _HomeShellState();
+}
+
+class _HomeShellState extends ConsumerState<HomeShell> {
+  bool _drawerHidden = false;
+
+  @override
+  Widget build(BuildContext context) {
     final drawer = const ZDrawer();
     final wide = MediaQuery.sizeOf(context).width >= 600;
 
@@ -21,14 +28,18 @@ class HomeShell extends ConsumerWidget {
       final scheme = Theme.of(context).colorScheme;
       final dark = scheme.brightness == Brightness.dark;
       // dsh live: drawer flush-left full-height, 31% width (min 280/max 420)
-      final drawerW = (MediaQuery.sizeOf(context).width * 0.31)
-          .clamp(280.0, 420.0);
+      final drawerW = _drawerHidden
+          ? 0.0
+          : (MediaQuery.sizeOf(context).width * 0.31)
+              .clamp(280.0, 420.0);
       return Row(
         children: [
-          Container(
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOut,
             width: drawerW,
             color: dark ? ZColors.darkSurface : ZColors.drawerBg,
-            child: drawer,
+            child: drawerW > 0 ? drawer : null,
           ),
           Expanded(
             child: Container(
@@ -42,7 +53,11 @@ class HomeShell extends ConsumerWidget {
                         colors: [Color(0xFFD6E8F2), Color(0xFFF7F9FA)],
                       ),
                     ),
-              child: const ChatScreen(embedded: true),
+              child: ChatScreen(
+                embedded: true,
+                onToggleDrawer: () =>
+                    setState(() => _drawerHidden = !_drawerHidden),
+              ),
             ),
           ),
         ],

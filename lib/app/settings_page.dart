@@ -50,7 +50,15 @@ class SettingsPage extends ConsumerWidget {
           ],
         ),
       ),
-      body: ListView(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [ZColors.bgGradTop, ZColors.bgGradBottom],
+          ),
+        ),
+        child: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         children: [
           // ---- 概览卡 (A-枢纽页骨架, screens.md #14) ----
@@ -213,7 +221,8 @@ class SettingsPage extends ConsumerWidget {
                 .bodySmall
                 ?.copyWith(color: scheme.outline),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }

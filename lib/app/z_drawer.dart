@@ -21,6 +21,7 @@ class ZDrawer extends ConsumerStatefulWidget {
 
 class _ZDrawerState extends ConsumerState<ZDrawer> {
   String _filter = 'all';
+  String _search = '';
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +32,9 @@ class _ZDrawerState extends ConsumerState<ZDrawer> {
     ref.watch(m1Provider.select((x) => x.sessionsTick));
     final index = ctrl.sessionsIndex;
     final sessions = (index?.list ?? <SessionEntry>[])
+        .where((e) =>
+            _search.isEmpty ||
+            e.title.toLowerCase().contains(_search.toLowerCase()))
         .where((e) => switch (_filter) {
               'running' => e.phase == 'running' || e.phase == 'prewarming',
               'done' => e.phase != 'running' && e.phase != 'prewarming',
@@ -79,6 +83,53 @@ class _ZDrawerState extends ConsumerState<ZDrawer> {
                   ),
                   // 新会话: 36h stadium, the ONE solid primary (dsh #6)
                   _NewChatPill(enabled: s.phase == 'ready'),
+                ],
+              ),
+            ),
+            // ---- search box (dsh: 32h r9 #FBFDFE) ----
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 2, 20, 8),
+              child: SizedBox(
+                height: 36,
+                child: TextField(
+                  onChanged: (v) => setState(() => _search = v),
+                  style: const TextStyle(fontSize: 14),
+                  decoration: InputDecoration(
+                    hintText: '搜索会话',
+                    hintStyle: TextStyle(
+                        fontSize: 14, color: scheme.onSurfaceVariant.withValues(alpha: .7)),
+                    prefixIcon: Icon(Icons.search,
+                        size: 18, color: scheme.onSurfaceVariant),
+                    isDense: true,
+                    filled: true,
+                    fillColor: scheme.brightness == Brightness.dark
+                        ? Colors.white.withValues(alpha: .06)
+                        : const Color(0xFFFBFDFE),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(9),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ),
+            ),
+            // ---- project selector row (dsh: pennypool ▾) ----
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+              child: Row(
+                children: [
+                  Icon(Icons.folder_outlined,
+                      size: 17, color: scheme.onSurfaceVariant),
+                  const SizedBox(width: 8),
+                  Text('工作区',
+                      style: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w600)),
+                  Icon(Icons.keyboard_arrow_down,
+                      size: 18, color: scheme.onSurfaceVariant),
+                  const Spacer(),
+                  Icon(Icons.more_horiz,
+                      size: 18, color: scheme.onSurfaceVariant),
                 ],
               ),
             ),
@@ -361,11 +412,33 @@ class _SessionList extends ConsumerWidget {
       );
     }
 
+    // Build with time group headers (今天/昨天/更早, dsh style)
+    final items = <({String? header, SessionEntry? entry})>[];
+    String? lastGroup;
+    for (final e in sessions) {
+      final g = _timeGroup(e.lastActivityAt);
+      if (g != lastGroup) {
+        items.add((header: g, entry: null));
+        lastGroup = g;
+      }
+      items.add((header: null, entry: e));
+    }
+
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
-      itemCount: sessions.length,
+      itemCount: items.length,
       itemBuilder: (_, i) {
-        final e = sessions[i];
+        final item = items[i];
+        if (item.entry == null) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(10, 10, 10, 4),
+            child: Text(item.header!,
+                style: TextStyle(
+                    fontSize: 13,
+                    color: scheme.onSurfaceVariant.withValues(alpha: .8))),
+          );
+        }
+        final e = item.entry!;
         final active = e.sessionId == activeId;
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 1),
@@ -402,4 +475,16 @@ class _SessionList extends ConsumerWidget {
       },
     );
   }
+}
+
+String? _timeGroup(int ms) {
+  final dt = DateTime.fromMillisecondsSinceEpoch(ms);
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final day = DateTime(dt.year, dt.month, dt.day);
+  final diff = today.difference(day).inDays;
+  if (diff <= 0) return '今天';
+  if (diff == 1) return '昨天';
+  if (diff <= 7) return '本周';
+  return '更早';
 }
