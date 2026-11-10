@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/devices_page.dart';
 import '../l10n/gen/app_localizations.dart';
 import '../m1/relay_service.dart';
+import '../design/tokens.dart';
 import '../protocol/conversation.dart';
 import 'turn_models.dart';
 
@@ -148,14 +149,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 },
               ),
 
-              // ---- floating translucent top bar ----
+              // ---- top chrome: back/menu circle + title capsule + stop ----
               Positioned(
-                top: 8,
-                left: 12,
-                right: 12,
-                child: _FloatBar(
-                  child: Row(
-                    children: [
+                top: 10,
+                left: 14,
+                right: 14,
+                child: Row(
+                  children: [
                       widget.embedded
                           ? MediaQuery.sizeOf(context).width < 600
                               ? IconButton(
@@ -188,17 +188,48 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         ),
                       ),
                       // 停止按钮: turn running → stop icon in the top bar.
+                      const SizedBox(width: 10),
+                      _GlassCapsule(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              s.sessionId != null ? '会话' : t.transcript,
+                              style: const TextStyle(
+                                  fontSize: 13.5, fontWeight: FontWeight.w700),
+                            ),
+                            Row(
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: const BoxDecoration(
+                                      color: ZColors.greenDot,
+                                      shape: BoxShape.circle),
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  '${ctrl.deviceName ?? 'ZCode'} · ${_stateLabel(st, t)}',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Spacer(),
                       if (_isRunning(st) && s.sessionId != null)
-                        IconButton(
-                          tooltip: '停止',
-                          icon: Icon(Icons.stop_circle_outlined,
-                              size: 22, color: scheme.error),
-                          onPressed: () =>
-                              ctrl.stopSession(s.sessionId!),
+                        _GlassCapsule(
+                          child: IconButton(
+                            tooltip: '停止',
+                            visualDensity: VisualDensity.compact,
+                            icon: Icon(Icons.stop_circle_outlined,
+                                size: 20, color: scheme.error),
+                            onPressed: () => ctrl.stopSession(s.sessionId!),
+                          ),
                         ),
                     ],
                   ),
-                ),
               ),
 
               // ---- pending interactions above the input bar ----
@@ -209,50 +240,88 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 child: _InteractionsPanel(interactions: st.pendingInteractions),
               ),
 
-              // ---- floating translucent input bar ----
+              // ---- dsh input card: near-solid white, r24, + circle,
+              //      teal send circle (visual-spec §9) ----
               Positioned(
-                left: 12,
-                right: 12,
-                bottom: 12,
-                child: _FloatBar(
+                left: 14,
+                right: 14,
+                bottom: 14,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(6, 6, 6, 6),
+                  decoration: BoxDecoration(
+                    color: scheme.surface.withValues(alpha: .96),
+                    borderRadius: BorderRadius.circular(26),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x1A203A50),
+                        blurRadius: 18,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .surfaceContainerHighest
-                                .withValues(alpha: .55),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: TextField(
-                            controller: _input,
-                            minLines: 1,
-                            maxLines: 4,
-                            textInputAction: TextInputAction.newline,
-                            onSubmitted: (_) => _send(),
-                            decoration: InputDecoration(
-                              border: InputBorder.none,
-                              isDense: true,
-                              hintText: t.messageHint,
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4, left: 4),
+                        child: Material(
+                          color: scheme.surfaceContainerHighest
+                              .withValues(alpha: .7),
+                          shape: const CircleBorder(),
+                          child: InkWell(
+                            customBorder: const CircleBorder(),
+                            onTap: () {}, // attachments arrive with M-batch
+                            child: const Padding(
+                              padding: EdgeInsets.all(9),
+                              child: Icon(Icons.add, size: 20),
                             ),
-                            style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: TextField(
+                          controller: _input,
+                          minLines: 1,
+                          maxLines: 5,
+                          textInputAction: TextInputAction.newline,
+                          onSubmitted: (_) => _send(),
+                          decoration: InputDecoration(
+                            hintText: t.messageHint,
+                            border: InputBorder.none,
+                            filled: false,
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                                vertical: 14),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
                       ValueListenableBuilder(
                         valueListenable: _input,
-                        builder: (_, value, _) => IconButton.filled(
-                          style: IconButton.styleFrom(
-                            backgroundColor: scheme.primary,
-                            foregroundColor: scheme.onPrimary,
+                        builder: (_, value, _) => Padding(
+                          padding: const EdgeInsets.only(bottom: 2),
+                          child: Material(
+                            color: value.text.trim().isEmpty || s.sending
+                                ? scheme.surfaceContainerHighest
+                                : scheme.primary,
+                            shape: const CircleBorder(),
+                            child: InkWell(
+                              customBorder: const CircleBorder(),
+                              onTap: value.text.trim().isEmpty || s.sending
+                                  ? null
+                                  : _send,
+                              child: Padding(
+                                padding: const EdgeInsets.all(11),
+                                child: Icon(Icons.arrow_upward,
+                                    size: 20,
+                                    color: value.text.trim().isEmpty ||
+                                            s.sending
+                                        ? scheme.onSurfaceVariant
+                                        : scheme.onPrimary),
+                              ),
+                            ),
                           ),
-                          onPressed:
-                              value.text.trim().isEmpty || s.sending ? null : _send,
-                          icon: const Icon(Icons.arrow_upward, size: 20),
                         ),
                       ),
                     ],
@@ -289,38 +358,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 }
 
-/// Translucent floating chrome: 72% surface + blur + hairline edge.
-class _FloatBar extends StatelessWidget {
-  const _FloatBar({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: BackdropFilter(
-        filter: const ColorFilter.mode(Color(0xB8FFFFFF), BlendMode.srcOver),
-        child: Container(
-          decoration: BoxDecoration(
-            color: scheme.surface.withValues(alpha: .72),
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x14283A54),
-                blurRadius: 14,
-                offset: Offset(0, 2),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          child: child,
-        ),
-      ),
-    );
-  }
-}
 
 // ------------------------------------------------------------ turn widget
 
@@ -939,6 +976,34 @@ class _WelcomeScreen extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Glass capsule (visual-spec §3): white 90%, pill radius, no border,
+/// whisper shadow — the top-chrome shape of the reference app.
+class _GlassCapsule extends StatelessWidget {
+  const _GlassCapsule({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: scheme.surface.withValues(alpha: .9),
+        borderRadius: BorderRadius.circular(99),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14203A50),
+            blurRadius: 10,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: child,
     );
   }
 }
