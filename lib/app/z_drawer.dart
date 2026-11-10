@@ -44,7 +44,10 @@ class _ZDrawerState extends ConsumerState<ZDrawer> {
           ..sort((a, b) => b.lastActivityAt.compareTo(a.lastActivityAt));
 
     return Material(
-      color: Colors.transparent,
+      // Solid, self-contained: never let the page gradient bleed through.
+      color: scheme.brightness == Brightness.dark
+          ? ZColors.darkSurface
+          : ZColors.drawerBg,
       child: SafeArea(
         right: false,
         child: Column(

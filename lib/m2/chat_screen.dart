@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -76,9 +77,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   void _jumpToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scroll.hasClients) {
-        _scroll.jumpTo(_scroll.position.maxScrollExtent);
+      if (!_scroll.hasClients) {
+        _jumpToBottom(); // list not laid out yet — retry next frame
+        return;
       }
+      _scroll.jumpTo(_scroll.position.maxScrollExtent);
     });
   }
 
@@ -136,7 +139,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               // ---- message list (scrolls under the floating chrome) ----
               ListView.builder(
                 controller: _scroll,
-                padding: const EdgeInsets.fromLTRB(16, 80, 16, 148),
+                padding: EdgeInsets.fromLTRB(
+                    16,
+                    MediaQuery.paddingOf(context).top + AppKeys.barHeight + 16,
+                    16,
+                    168,
+                  ),
                 itemCount: turns.length + 1,
                 itemBuilder: (context, i) {
                   if (i == 0) {
@@ -190,7 +198,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       ),
                       const SizedBox(width: 8),
                       // Title pill: minH 44, left pad 16, Stadium (dsh)
-                      Expanded(
+                      Flexible(
                         child: _TitlePill(
                           title: s.sessionId != null ? '会话' : t.transcript,
                           statusText:
@@ -206,6 +214,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           iconColor: scheme.error,
                           onPressed: () => ctrl.stopSession(s.sessionId!),
                         ),
+                      if (widget.embedded &&
+                          MediaQuery.sizeOf(context).width >= 600) ...[
+                        const SizedBox(width: 8),
+                        _GlassCircleButton(
+                          icon: Icons.view_sidebar_outlined,
+                          onPressed: widget.onToggleDrawer,
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -922,15 +938,19 @@ class _GlassCircleButton extends StatelessWidget {
     return SizedBox(
       width: AppKeys.roundKeySize,
       height: AppKeys.roundKeySize,
-      child: Material(
-        color: Colors.white.withValues(alpha: .78),
-        shape: const CircleBorder(),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onPressed,
-          child: Icon(icon,
-              size: AppKeys.roundKeyIcon,
-              color: iconColor ?? scheme.onSurface),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(99),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+          child: Material(
+            color: scheme.surface.withValues(alpha: .82),
+            child: InkWell(
+              onTap: onPressed,
+              child: Icon(icon,
+                  size: AppKeys.roundKeyIcon,
+                  color: iconColor ?? scheme.onSurface),
+            ),
+          ),
         ),
       ),
     );
@@ -955,16 +975,20 @@ class _TitlePill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      constraints: const BoxConstraints(minHeight: 44),
-      padding: const EdgeInsets.only(left: 16, right: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: .78),
-        borderRadius: BorderRadius.circular(99),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(99),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 44),
+          padding: const EdgeInsets.only(left: 16, right: 12),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: .72),
+            borderRadius: BorderRadius.circular(99),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title,
               style: const TextStyle(
@@ -1000,6 +1024,8 @@ class _TitlePill extends StatelessWidget {
             ],
           ),
         ],
+      ),
+        ),
       ),
     );
   }
