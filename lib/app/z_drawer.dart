@@ -265,6 +265,56 @@ class _ZDrawerState extends ConsumerState<ZDrawer> {
     );
   }
 
+  /// Workspace selector row (dsh parity): shows the connected host as
+  /// the current workspace. Multi-workspace support lands with the
+  /// desktop side; for now this is an honest single-entry sheet.
+  void _workspaceSheet(BuildContext context) {
+    final s = ref.watch(m1Provider);
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('工作区',
+                    style: Theme.of(ctx)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w700)),
+              ),
+            ),
+            ListTile(
+              leading: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDFF1E4),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: const Icon(Icons.terminal,
+                    size: 20, color: Color(0xFF155E66)),
+              ),
+              title: Text(ctrl_deviceName ?? 'ZCode',
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: Text(s.phase == 'ready' ? '已连接' : '未连接'),
+              trailing: const Icon(Icons.check),
+              onTap: () => Navigator.pop(ctx),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String? get ctrl_deviceName =>
+      ref.read(m1Provider.notifier).deviceName;
+
   void _push(BuildContext context, Widget page) {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
   }

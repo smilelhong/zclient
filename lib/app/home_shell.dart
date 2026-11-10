@@ -39,7 +39,7 @@ class _HomeShellState extends State<HomeShell> {
             // container clips — content slides left instead of reflowing.
             ValueListenableBuilder<bool>(
               valueListenable: drawerHiddenNotifier,
-              builder: (_, hidden, __) => AnimatedContainer(
+              builder: (_, hidden, _) => AnimatedContainer(
                 duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOut,
                 width: hidden ? 0 : 300,
