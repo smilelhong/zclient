@@ -89,6 +89,7 @@ class M1Controller extends Notifier<M1State> {
   ConversationSubscription? _sub;
   SessionsIndexSubscription? _indexSub;
   TaskCommandsPort? _tasks;
+  String _workspaceId = '';
 
   static const loginHost = 'zcode.z.ai';
   static const _linkKey = 'zc.pairing.link';
@@ -254,6 +255,25 @@ class M1Controller extends Notifier<M1State> {
       _log('✓ 已停止');
     } catch (e) {
       _log('✗ 停止失败: $e');
+    }
+  }
+
+  /// 新会话 (drawer primary button): creates + subscribes a fresh session
+  /// on the connected workspace and makes it the live chat.
+  Future<void> newSession() async {
+    final conv = _conv;
+    if (conv == null || _workspaceId.isEmpty) {
+      _log('未连接，无法新建会话');
+      return;
+    }
+    try {
+      final id = await conv.createSession(_workspaceId).timeout(
+            const Duration(seconds: 30),
+          );
+      await switchSession(id);
+      _log('✓ 新会话: $id');
+    } catch (e) {
+      _log('✗ 新会话失败: $e');
     }
   }
 
@@ -566,6 +586,7 @@ class M1Controller extends Notifier<M1State> {
       _conv = conv;
 
       final workspaceId = _chatWorkspaceId(workspace);
+      _workspaceId = workspaceId;
       _log('workspaceId=$workspaceId');
 
       // Per-device session memory (parity #6): each paired desktop resumes

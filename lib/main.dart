@@ -3,7 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/app_settings.dart';
-import 'app/app_shell.dart';
+import 'app/home_shell.dart';
 import 'app/notify_service.dart';
 import 'design/tokens.dart';
 import 'l10n/gen/app_localizations.dart';
@@ -198,7 +198,7 @@ class _ZClientAppState extends ConsumerState<ZClientApp>
                 ),
           color: settings.theme == ThemeMode.dark ? ZColors.darkBg : null,
         ),
-        child: const AppShell(),
+        child: const HomeShell(),
       ),
     );
   }

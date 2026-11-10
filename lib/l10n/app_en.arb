@@ -41,6 +41,7 @@
   "themeSystem": "System",
   "themeLight": "Light",
   "themeDark": "Dark",
+  "newSession": "New session",
   "language": "Language",
   "langSystem": "System"
 }

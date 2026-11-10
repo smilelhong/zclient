@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../app/devices_page.dart';
 import '../l10n/gen/app_localizations.dart';
 import '../m1/relay_service.dart';
 import '../protocol/conversation.dart';
@@ -14,7 +15,12 @@ import 'turn_models.dart';
 /// (status line → text/tool parts → file-changes card), pending-interaction
 /// cards, streaming cursor, top-pull history paging.
 class ChatScreen extends ConsumerStatefulWidget {
-  const ChatScreen({super.key});
+  /// [embedded] = lives inside HomeShell (wide: docked beside the drawer,
+  /// narrow: under the root scaffold with the drawer). Non-embedded keeps
+  /// the standalone pushed-page behavior (back button).
+  const ChatScreen({super.key, this.embedded = false});
+
+  final bool embedded;
 
   @override
   ConsumerState<ChatScreen> createState() => _ChatScreenState();
@@ -99,9 +105,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final t = AppLocalizations.of(context);
 
     if (st == null) {
+      // Home welcome state (dsh posture): greeting by hour + device
+      // context + the one action that matters right now.
+      if (widget.embedded) return _WelcomeScreen(embedded: true);
       return Scaffold(
         appBar: AppBar(title: Text(t.transcript)),
-        body: const Center(child: Text('—')),
+        body: const _WelcomeScreen(embedded: false),
       );
     }
     final turns = groupTurns(st.rows);
@@ -147,10 +156,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 child: _FloatBar(
                   child: Row(
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back, size: 20),
-                        onPressed: () => Navigator.of(context).maybePop(),
-                      ),
+                      widget.embedded
+                          ? MediaQuery.sizeOf(context).width < 600
+                              ? IconButton(
+                                  icon: const Icon(Icons.menu, size: 22),
+                                  onPressed: () =>
+                                      Scaffold.of(context).openDrawer(),
+                                )
+                              : const SizedBox(width: 8)
+                          : IconButton(
+                              icon: const Icon(Icons.arrow_back, size: 20),
+                              onPressed: () =>
+                                  Navigator.of(context).maybePop(),
+                            ),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -841,6 +859,86 @@ class _InteractionCard extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Home greeting (dsh posture): 时段问候 + 一句副题 + 单一主行动。
+class _WelcomeScreen extends ConsumerWidget {
+  const _WelcomeScreen({required this.embedded});
+
+  final bool embedded;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(m1Provider);
+    final ctrl = ref.read(m1Provider.notifier);
+    final scheme = Theme.of(context).colorScheme;
+    final t = AppLocalizations.of(context);
+    final hour = DateTime.now().hour;
+    final greeting = hour < 5
+        ? '夜深了'
+        : hour < 11
+            ? '早上好'
+            : hour < 14
+                ? '中午好'
+                : hour < 19
+                    ? '下午好'
+                    : '晚上好';
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(greeting,
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineMedium
+                    ?.copyWith(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            Text('今天想让 ZCode 做点什么？',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyLarge
+                    ?.copyWith(color: scheme.onSurfaceVariant)),
+            const SizedBox(height: 28),
+            if (s.phase == 'ready')
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: scheme.primary,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+                ),
+                onPressed: () => ctrl.newSession(),
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                label: Text(t.newSession,
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
+              )
+            else if (s.phase == 'connecting')
+              const CircularProgressIndicator()
+            else
+              Column(
+                children: [
+                  FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: scheme.primary,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 22, vertical: 14),
+                    ),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const DevicesPage()),
+                    ),
+                    icon: const Icon(Icons.qr_code_scanner, size: 18),
+                    label: const Text('连接一台桌面端',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
