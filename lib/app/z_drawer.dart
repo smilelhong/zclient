@@ -138,14 +138,14 @@ class _ZDrawerState extends ConsumerState<ZDrawer> {
                 children: [
                   // host avatar: 36 circle
                   Container(
-                    width: 36,
-                    height: 36,
+                    width: 46,
+                    height: 46,
                     decoration: BoxDecoration(
-                      color: scheme.primaryContainer,
-                      shape: BoxShape.circle,
+                      color: const Color(0xFFD8EEE4),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(Icons.terminal,
-                        size: 19, color: scheme.onPrimaryContainer),
+                    child: const Icon(Icons.terminal,
+                        size: 22, color: Color(0xFF155E66)),
                   ),
                   const SizedBox(width: 8),
                   // host name + status line (dot 6 + gap 6)
@@ -230,7 +230,7 @@ class _NewChatPill extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: enabled ? scheme.primary : scheme.primary.withValues(alpha: .4),
+      color: enabled ? ZColors.accent : ZColors.accent.withValues(alpha: .4),
       shape: const StadiumBorder(),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -284,7 +284,7 @@ class _InkChip extends StatelessWidget {
           label: Text(label,
               style: TextStyle(
                 fontSize: 13,
-                color: selected ? scheme.surface : scheme.onSurfaceVariant,
+                color: selected ? Colors.white : const Color(0xFF3C4C56),
               )),
           selected: selected,
           onSelected: (_) => onTap(),
@@ -294,8 +294,9 @@ class _InkChip extends StatelessWidget {
           side: BorderSide.none,
           shape: const StadiumBorder(),
           backgroundColor:
-              ZColors.chipUnselected(scheme.brightness, scheme.onSurface),
-          selectedColor: dark ? Colors.white : scheme.onSurface,
+              dark ? Colors.white.withValues(alpha: .07) : ZColors.chipUnselBg,
+          selectedColor:
+              dark ? Colors.white : ZColors.accent,
           labelPadding: const EdgeInsets.symmetric(horizontal: 6),
         ),
       ),
@@ -370,8 +371,7 @@ class _SessionList extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(vertical: 1),
           child: Material(
             color: active
-                ? ZColors.sessionSelected(
-                    scheme.brightness, scheme.primary)
+                ? scheme.primary.withValues(alpha: .18)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
             child: InkWell(

@@ -428,7 +428,7 @@ class _AssistantText extends StatelessWidget {
           data: text,
           selectable: true,
           styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-            p: const TextStyle(height: 1.6, fontSize: 14),
+            p: const TextStyle(height: 1.7, fontSize: 15),
             code: TextStyle(
               fontFamily: 'monospace',
               fontSize: 12.5,
@@ -438,7 +438,7 @@ class _AssistantText extends StatelessWidget {
               color: scheme.primary.withValues(alpha: .05),
               borderRadius: BorderRadius.circular(12),
             ),
-            listBullet: const TextStyle(fontSize: 14),
+            listBullet: const TextStyle(fontSize: 15, height: 1.7),
           ),
         ),
         if (streaming) const _Cursor(),
@@ -909,7 +909,7 @@ class _GlassCircleButton extends StatelessWidget {
       width: AppKeys.roundKeySize,
       height: AppKeys.roundKeySize,
       child: Material(
-        color: scheme.surface.withValues(alpha: .88),
+        color: Colors.white.withValues(alpha: .78),
         shape: const CircleBorder(),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -945,7 +945,7 @@ class _TitlePill extends StatelessWidget {
       constraints: const BoxConstraints(minHeight: 44),
       padding: const EdgeInsets.only(left: 16, right: 12),
       decoration: BoxDecoration(
-        color: scheme.surface.withValues(alpha: .88),
+        color: Colors.white.withValues(alpha: .78),
         borderRadius: BorderRadius.circular(99),
       ),
       child: Column(
@@ -954,9 +954,10 @@ class _TitlePill extends StatelessWidget {
         children: [
           Text(title,
               style: const TextStyle(
-                fontSize: 15,
+                fontSize: 16,
                 height: 1.3,
                 fontWeight: FontWeight.w600,
+                color: Color(0xFF1D2D36),
               )),
           const SizedBox(height: 1),
           Row(
@@ -975,10 +976,10 @@ class _TitlePill extends StatelessWidget {
                   statusText,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 11,
+                  style: const TextStyle(
+                    fontSize: 12,
                     height: 1.25,
-                    color: scheme.onSurfaceVariant,
+                    color: Color(0xFF61727C),
                   ),
                 ),
               ),
@@ -1053,8 +1054,8 @@ class _DshComposerState extends State<_DshComposer> {
     return Container(
       padding: const EdgeInsets.all(AppKeys.outerPad),
       decoration: BoxDecoration(
-        color: scheme.surface.withValues(alpha: .96),
-        borderRadius: BorderRadius.circular(AppRadius.composer),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
         boxShadow: const [
           BoxShadow(
             color: Color(0x14203040),
@@ -1180,15 +1181,15 @@ class _SendKeyState extends State<_SendKey>
     final isStop = widget.isRunning;
 
     final bg = isStop
-        ? scheme.primary
+        ? ZColors.accent
         : active
-            ? scheme.primary
-            : scheme.onSurface.withValues(alpha: .12);
+            ? ZColors.accent
+            : const Color(0xFFE4E9ED); // dsh live: grey inactive
     final fg = isStop
-        ? scheme.onPrimary
+        ? Colors.white
         : active
-            ? scheme.onPrimary
-            : scheme.onSurface.withValues(alpha: .38);
+            ? Colors.white
+            : const Color(0xFF2A3840);
 
     return GestureDetector(
       onTapDown: (_) {
@@ -1241,8 +1242,7 @@ class _MetaLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final tertiary = scheme.onSurfaceVariant;
+    const tertiary = Color(0xFF5F707A);
 
     String fmtTokens(int n) {
       if (n >= 10000) return '${(n / 10000).toStringAsFixed(1)}万';

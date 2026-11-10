@@ -9,9 +9,10 @@ abstract final class AppSpace {
   static const double rowSingle = 52;
   static const double rowDouble = 64;
   static const double readingWidth = 720;
-  // dsh source: contentEdge=10 for drawer items, 20 for text anchors
-  static const double contentEdge = 10;
-  static const double textEdge = 20;
+  // dsh live: drawer = 31% screen width, flush-left full-height
+  static const double drawerWidthFraction = 0.31;
+  static const double drawerMinWidth = 280;
+  static const double drawerMaxWidth = 420;
 }
 
 abstract final class AppRadius {
@@ -62,11 +63,16 @@ abstract final class ZColors {
   static const diffDel = Color(0xFFD25454);
 
   // dsh-Go measured page gradient (135°) + single accent
-  static const bgGradTop = Color(0xFFEAF3F8);
-  static const bgGradBottom = Color(0xFFC3DBE9);
-  static const accent = Color(0xFF155E66);
-  static const greenDot = Color(0xFF34B26B);
+  static const bgGradTop = Color(0xFFD6E8F2);
+  static const bgGradBottom = Color(0xFFF7F9FA);
+  static const accent = Color(0xFF1B4A5F); // dsh live: deep navy-teal
+  static const greenDot = Color(0xFF3EC173);
   static const warnSurface = Color(0xFFFDECEA);
+  static const drawerBg = Color(0xFFF0F4F8);
+  static const chipUnselBg = Color(0xFFE2EAF0);
+  static const sessionHighlight = Color(0xFFDAE6EE);
+  static const bodyText = Color(0xFF1E2A32);
+  static const metaText = Color(0xFF61727C);
   static const warnText = Color(0xFF9A3324);
 
   // dark

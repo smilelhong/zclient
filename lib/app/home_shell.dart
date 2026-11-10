@@ -20,34 +20,32 @@ class HomeShell extends ConsumerWidget {
     if (wide) {
       final scheme = Theme.of(context).colorScheme;
       final dark = scheme.brightness == Brightness.dark;
-      return SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              Container(
-                width: 320,
-                decoration: BoxDecoration(
-                  color:
-                      dark ? ZColors.darkSurface : const Color(0xFFF7F9FA),
-                  borderRadius: BorderRadius.circular(36),
-                  boxShadow: dark
-                      ? null
-                      : const [
-                          BoxShadow(
-                            color: Color(0x1A203A50),
-                            blurRadius: 24,
-                            offset: Offset(0, 6),
-                          ),
-                        ],
-                ),
-                child: drawer,
-              ),
-              const SizedBox(width: 12),
-              const Expanded(child: ChatScreen(embedded: true)),
-            ],
+      // dsh live: drawer flush-left full-height, 31% width (min 280/max 420)
+      final drawerW = (MediaQuery.sizeOf(context).width * 0.31)
+          .clamp(280.0, 420.0);
+      return Row(
+        children: [
+          Container(
+            width: drawerW,
+            color: dark ? ZColors.darkSurface : ZColors.drawerBg,
+            child: drawer,
           ),
-        ),
+          Expanded(
+            child: Container(
+              // vertical gradient per live-spec
+              decoration: dark
+                  ? null
+                  : const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0xFFD6E8F2), Color(0xFFF7F9FA)],
+                      ),
+                    ),
+              child: const ChatScreen(embedded: true),
+            ),
+          ),
+        ],
       );
     }
 
