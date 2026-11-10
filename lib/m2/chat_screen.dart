@@ -19,10 +19,19 @@ class ChatScreen extends ConsumerStatefulWidget {
   /// [embedded] = lives inside HomeShell (wide: docked beside the drawer,
   /// narrow: under the root scaffold with the drawer). Non-embedded keeps
   /// the standalone pushed-page behavior (back button).
-  const ChatScreen({super.key, this.embedded = false, this.onToggleDrawer});
+  const ChatScreen({
+    super.key,
+    this.embedded = false,
+    this.onToggleDrawer,
+    this.onOpenDrawer,
+    this.leadingAsMenu = false,
+  });
 
   final bool embedded;
   final VoidCallback? onToggleDrawer;
+  final VoidCallback? onOpenDrawer;
+  /// When the landscape drawer is collapsed, the leading circle opens it.
+  final bool leadingAsMenu;
 
   @override
   ConsumerState<ChatScreen> createState() => _ChatScreenState();
@@ -161,15 +170,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     children: [
                       // 44dp glass circle, icon 22 (dsh GlassIconButton)
                       _GlassCircleButton(
-                        icon: widget.embedded
-                            ? MediaQuery.sizeOf(context).width < 840
+                        icon: widget.embedded &&
+                                MediaQuery.sizeOf(context).width < 840
+                            ? Icons.menu
+                            : widget.embedded && widget.leadingAsMenu
                                 ? Icons.menu
-                                : Icons.arrow_back
-                            : Icons.arrow_back,
+                                : Icons.arrow_back,
                         onPressed: () {
                           if (widget.embedded &&
                               MediaQuery.sizeOf(context).width < 840) {
-                            Scaffold.of(context).openDrawer();
+                            widget.onOpenDrawer?.call();
+                          } else if (widget.embedded &&
+                              widget.leadingAsMenu) {
+                            widget.onToggleDrawer?.call();
                           } else if (!widget.embedded) {
                             Navigator.of(context).maybePop();
                           }
