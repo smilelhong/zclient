@@ -299,7 +299,7 @@ class _ZDrawerState extends ConsumerState<ZDrawer> {
                 child: const Icon(Icons.terminal,
                     size: 20, color: Color(0xFF155E66)),
               ),
-              title: Text(ctrl_deviceName ?? 'ZCode',
+              title: Text(deviceNameOf ?? 'ZCode',
                   style: const TextStyle(fontWeight: FontWeight.w600)),
               subtitle: Text(s.phase == 'ready' ? '已连接' : '未连接'),
               trailing: const Icon(Icons.check),
@@ -312,7 +312,7 @@ class _ZDrawerState extends ConsumerState<ZDrawer> {
     );
   }
 
-  String? get ctrl_deviceName =>
+  String? get deviceNameOf =>
       ref.read(m1Provider.notifier).deviceName;
 
   void _push(BuildContext context, Widget page) {

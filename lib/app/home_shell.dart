@@ -55,7 +55,7 @@ class _HomeShellState extends State<HomeShell> {
             Expanded(
               child: ValueListenableBuilder<bool>(
                 valueListenable: drawerHiddenNotifier,
-                builder: (_, hidden, __) => ChatScreen(
+                builder: (_, hidden, _) => ChatScreen(
                   embedded: true,
                   onToggleDrawer: _toggle,
                   onOpenDrawer: () =>
