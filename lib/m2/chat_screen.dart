@@ -149,68 +149,52 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 },
               ),
 
-              // ---- top chrome: back/menu circle + title capsule + stop ----
+              // ---- top chrome: 44 glass circle + 56 bar + pill ----
               Positioned(
-                top: 10,
-                left: 14,
-                right: 14,
-                child: Row(
-                  children: [
-                      widget.embedded
-                          ? MediaQuery.sizeOf(context).width < 600
-                              ? IconButton(
-                                  icon: const Icon(Icons.menu, size: 22),
-                                  onPressed: () =>
-                                      Scaffold.of(context).openDrawer(),
-                                )
-                              : const SizedBox(width: 8)
-                          : IconButton(
-                              icon: const Icon(Icons.arrow_back, size: 20),
-                              onPressed: () =>
-                                  Navigator.of(context).maybePop(),
-                            ),
-                      const SizedBox(width: 10),
-                      _GlassCapsule(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              s.sessionId != null ? '会话' : t.transcript,
-                              style: const TextStyle(
-                                  fontSize: 13.5, fontWeight: FontWeight.w700),
-                            ),
-                            Row(
-                              children: [
-                                Container(
-                                  width: 6,
-                                  height: 6,
-                                  decoration: const BoxDecoration(
-                                      color: ZColors.greenDot,
-                                      shape: BoxShape.circle),
-                                ),
-                                const SizedBox(width: 5),
-                                Text(
-                                  '${ctrl.deviceName ?? 'ZCode'} · ${_stateLabel(st, t)}',
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                              ],
-                            ),
-                          ],
+                top: MediaQuery.paddingOf(context).top + 4,
+                left: 12,
+                right: 12,
+                child: SizedBox(
+                  height: AppKeys.barHeight,
+                  child: Row(
+                    children: [
+                      // 44dp glass circle, icon 22 (dsh GlassIconButton)
+                      _GlassCircleButton(
+                        icon: widget.embedded
+                            ? MediaQuery.sizeOf(context).width < 840
+                                ? Icons.menu
+                                : Icons.arrow_back
+                            : Icons.arrow_back,
+                        onPressed: () {
+                          if (widget.embedded &&
+                              MediaQuery.sizeOf(context).width < 840) {
+                            Scaffold.of(context).openDrawer();
+                          } else if (!widget.embedded) {
+                            Navigator.of(context).maybePop();
+                          }
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      // Title pill: minH 44, left pad 16, Stadium (dsh)
+                      Expanded(
+                        child: _TitlePill(
+                          title: s.sessionId != null ? '会话' : t.transcript,
+                          statusText:
+                              '${ctrl.deviceName ?? 'ZCode'} · ${_stateLabel(st, t)}',
+                          isLive: s.phase == 'ready',
+                          running: _isRunning(st),
                         ),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 8),
                       if (_isRunning(st) && s.sessionId != null)
-                        _GlassCapsule(
-                          child: IconButton(
-                            tooltip: '停止',
-                            visualDensity: VisualDensity.compact,
-                            icon: Icon(Icons.stop_circle_outlined,
-                                size: 20, color: scheme.error),
-                            onPressed: () => ctrl.stopSession(s.sessionId!),
-                          ),
+                        _GlassCircleButton(
+                          icon: Icons.stop_circle_outlined,
+                          iconColor: scheme.error,
+                          onPressed: () => ctrl.stopSession(s.sessionId!),
                         ),
                     ],
                   ),
+                ),
               ),
 
               // ---- pending interactions above the input bar ----
@@ -221,92 +205,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 child: _InteractionsPanel(interactions: st.pendingInteractions),
               ),
 
-              // ---- dsh input card: near-solid white, r24, + circle,
-              //      teal send circle (visual-spec §9) ----
+              // ---- Composer (dsh source: r28, key36 gap6, 15/1.45) ----
               Positioned(
                 left: 14,
                 right: 14,
                 bottom: 14,
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(6, 6, 6, 6),
-                  decoration: BoxDecoration(
-                    color: scheme.surface.withValues(alpha: .96),
-                    borderRadius: BorderRadius.circular(26),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x1A203A50),
-                        blurRadius: 18,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 4, left: 4),
-                        child: Material(
-                          color: scheme.surfaceContainerHighest
-                              .withValues(alpha: .7),
-                          shape: const CircleBorder(),
-                          child: InkWell(
-                            customBorder: const CircleBorder(),
-                            onTap: () {}, // attachments arrive with M-batch
-                            child: const Padding(
-                              padding: EdgeInsets.all(9),
-                              child: Icon(Icons.add, size: 20),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: TextField(
-                          controller: _input,
-                          minLines: 1,
-                          maxLines: 5,
-                          textInputAction: TextInputAction.newline,
-                          onSubmitted: (_) => _send(),
-                          decoration: InputDecoration(
-                            hintText: t.messageHint,
-                            border: InputBorder.none,
-                            filled: false,
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                                vertical: 14),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      ValueListenableBuilder(
-                        valueListenable: _input,
-                        builder: (_, value, _) => Padding(
-                          padding: const EdgeInsets.only(bottom: 2),
-                          child: Material(
-                            color: value.text.trim().isEmpty || s.sending
-                                ? scheme.surfaceContainerHighest
-                                : scheme.primary,
-                            shape: const CircleBorder(),
-                            child: InkWell(
-                              customBorder: const CircleBorder(),
-                              onTap: value.text.trim().isEmpty || s.sending
-                                  ? null
-                                  : _send,
-                              child: Padding(
-                                padding: const EdgeInsets.all(11),
-                                child: Icon(Icons.arrow_upward,
-                                    size: 20,
-                                    color: value.text.trim().isEmpty ||
-                                            s.sending
-                                        ? scheme.onSurfaceVariant
-                                        : scheme.onPrimary),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                child: _DshComposer(
+                  controller: _input,
+                  hint: t.messageHint,
+                  sending: s.sending,
+                  onSend: _send,
+                  onStop: s.sessionId != null
+                      ? () => ctrl.stopSession(s.sessionId!)
+                      : null,
+                  isRunning: _isRunning(st),
                 ),
               ),
             ],
@@ -401,6 +313,18 @@ class _TurnWidget extends ConsumerWidget {
     if (turn.header?['fileChanges'] is Map) {
       children.add(const SizedBox(height: 6));
       children.add(_FileChangesBar(header: turn.header!));
+    }
+
+    // Meta line (dsh 元信息行): `23秒 · 4步 · 3.4万 tokens ›` tabular
+    if (turn.header != null && !turn.streaming) {
+      final tokens = (turn.header!['outputTokens'] as num?)?.toInt() ?? 0;
+      final activeMs = (turn.header!['activeMs'] as num?)?.toInt() ?? 0;
+      if (tokens > 0 || activeMs > 0) {
+        children.add(_MetaLine(
+          tokens: tokens,
+          activeMs: activeMs,
+        ));
+      }
     }
 
     return Padding(
@@ -961,30 +885,404 @@ class _WelcomeScreen extends ConsumerWidget {
   }
 }
 
-/// Glass capsule (visual-spec §3): white 90%, pill radius, no border,
-/// whisper shadow — the top-chrome shape of the reference app.
-class _GlassCapsule extends StatelessWidget {
-  const _GlassCapsule({required this.child});
 
-  final Widget child;
+// ============================================================
+// dsh source-exact components
+// ============================================================
+
+/// 44×44 glass circle, icon 22 (dsh GlassIconButton / _RoundKey).
+class _GlassCircleButton extends StatelessWidget {
+  const _GlassCircleButton({
+    required this.icon,
+    this.iconColor,
+    this.onPressed,
+  });
+
+  final IconData icon;
+  final Color? iconColor;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      width: AppKeys.roundKeySize,
+      height: AppKeys.roundKeySize,
+      child: Material(
+        color: scheme.surface.withValues(alpha: .88),
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          child: Icon(icon,
+              size: AppKeys.roundKeyIcon,
+              color: iconColor ?? scheme.onSurface),
+        ),
+      ),
+    );
+  }
+}
+
+/// Title pill: Stadium, minH 44, left pad 16 (dsh _PillContent).
+/// Title 15/1.3 + status line 11/1.25 + StatusDot 6 + gap 5.
+class _TitlePill extends StatelessWidget {
+  const _TitlePill({
+    required this.title,
+    required this.statusText,
+    required this.isLive,
+    required this.running,
+  });
+
+  final String title;
+  final String statusText;
+  final bool isLive;
+  final bool running;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      constraints: const BoxConstraints(minHeight: 44),
+      padding: const EdgeInsets.only(left: 16, right: 12),
       decoration: BoxDecoration(
-        color: scheme.surface,
+        color: scheme.surface.withValues(alpha: .88),
         borderRadius: BorderRadius.circular(99),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x14203A50),
-            blurRadius: 10,
-            offset: Offset(0, 2),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style: const TextStyle(
+                fontSize: 15,
+                height: 1.3,
+                fontWeight: FontWeight.w600,
+              )),
+          const SizedBox(height: 1),
+          Row(
+            children: [
+              Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: isLive ? ZColors.okDot(scheme.brightness) : scheme.outline,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  statusText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    height: 1.25,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
-      child: child,
+    );
+  }
+}
+
+/// dsh source-exact composer: r28, key 36, gap 6, outer LTRB(6,6,6,6),
+/// text 15/1.45, send 36 circle (active=primary / disabled=onSurface@12%).
+class _DshComposer extends StatefulWidget {
+  const _DshComposer({
+    required this.controller,
+    required this.hint,
+    required this.sending,
+    required this.onSend,
+    this.onStop,
+    this.isRunning = false,
+  });
+
+  final TextEditingController controller;
+  final String hint;
+  final bool sending;
+  final VoidCallback onSend;
+  final VoidCallback? onStop;
+  final bool isRunning;
+
+  @override
+  State<_DshComposer> createState() => _DshComposerState();
+}
+
+class _DshComposerState extends State<_DshComposer> {
+  bool _hasText = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onText);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onText);
+    super.dispose();
+  }
+
+  void _onText() {
+    final has = widget.controller.text.trim().isNotEmpty;
+    if (has != _hasText) setState(() => _hasText = has);
+  }
+
+  void _send() {
+    if (!_hasText || widget.sending) return;
+    widget.onSend();
+  }
+
+  /// dsh: maxLines = (availH * 0.4 / lineHeight).floor().clamp(2, 6)
+  int get _maxLines {
+    // Simplified: cap at 6 for now (full impl needs context constraints).
+    return 6;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final lineHeight = 15.0 * 1.45; // dsh _lineHeight
+    final textPad = (AppKeys.size - lineHeight).abs() / 2;
+
+    return Container(
+      padding: const EdgeInsets.all(AppKeys.outerPad),
+      decoration: BoxDecoration(
+        color: scheme.surface.withValues(alpha: .96),
+        borderRadius: BorderRadius.circular(AppRadius.composer),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14203040),
+            blurRadius: 16,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          // + key: 36 circle
+          _ComposerKey(
+            icon: Icons.add,
+            onTap: () {}, // attachments arrive next batch
+          ),
+          const SizedBox(width: AppKeys.gap),
+          // Text field: 15/1.45, no border, hint textTertiary
+          Expanded(
+            child: TextField(
+              controller: widget.controller,
+              maxLines: _maxLines,
+              textInputAction: TextInputAction.newline,
+              onSubmitted: (_) => _send(),
+              style: const TextStyle(fontSize: 15, height: 1.45),
+              decoration: InputDecoration(
+                hintText: widget.hint,
+                hintStyle: TextStyle(
+                  fontSize: 15,
+                  height: 1.45,
+                  color: scheme.onSurfaceVariant.withValues(alpha: .6),
+                ),
+                border: InputBorder.none,
+                filled: false,
+                isDense: true,
+                contentPadding:
+                    EdgeInsets.symmetric(vertical: textPad.clamp(4, 14)),
+              ),
+            ),
+          ),
+          const SizedBox(width: AppKeys.gap),
+          // Send/stop key: 36 circle, dsh _SendButton spec
+          _SendKey(
+            hasText: _hasText,
+            sending: widget.sending,
+            isRunning: widget.isRunning,
+            onSend: _send,
+            onStop: widget.onStop,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 36dp composer key (+ button).
+class _ComposerKey extends StatelessWidget {
+  const _ComposerKey({required this.icon, this.onTap});
+
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      width: AppKeys.size,
+      height: AppKeys.size,
+      child: Material(
+        color: scheme.onSurface.withValues(alpha: .06),
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Icon(icon,
+              size: AppKeys.sendIcon, color: scheme.onSurface),
+        ),
+      ),
+    );
+  }
+}
+
+/// Send/stop key: 36 circle, active=primary / disabled=onSurface@12%
+/// bg + onSurface@38% fg; icon send 20 / stop 18; press scale 0.9.
+class _SendKey extends StatefulWidget {
+  const _SendKey({
+    required this.hasText,
+    required this.sending,
+    required this.isRunning,
+    required this.onSend,
+    this.onStop,
+  });
+
+  final bool hasText;
+  final bool sending;
+  final bool isRunning;
+  final VoidCallback onSend;
+  final VoidCallback? onStop;
+
+  @override
+  State<_SendKey> createState() => _SendKeyState();
+}
+
+class _SendKeyState extends State<_SendKey>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _press = AnimationController(
+    vsync: this,
+    duration: AppMotion.press,
+  );
+
+  bool _down = false;
+
+  @override
+  void dispose() {
+    _press.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final active = widget.hasText && !widget.sending;
+    final isStop = widget.isRunning;
+
+    final bg = isStop
+        ? scheme.primary
+        : active
+            ? scheme.primary
+            : scheme.onSurface.withValues(alpha: .12);
+    final fg = isStop
+        ? scheme.onPrimary
+        : active
+            ? scheme.onPrimary
+            : scheme.onSurface.withValues(alpha: .38);
+
+    return GestureDetector(
+      onTapDown: (_) {
+        _down = true;
+        _press.forward();
+      },
+      onTapUp: (_) {
+        _down = false;
+        _press.reverse();
+      },
+      onTapCancel: () {
+        _down = false;
+        _press.reverse();
+      },
+      onTap: () {
+        if (isStop) {
+          widget.onStop?.call();
+        } else if (active) {
+          widget.onSend();
+        }
+      },
+      child: AnimatedScale(
+        scale: _down ? 0.9 : 1.0,
+        duration: AppMotion.press,
+        curve: Curves.easeOut,
+        child: Container(
+          width: AppKeys.size,
+          height: AppKeys.size,
+          decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+          child: Center(
+            child: Icon(
+              isStop ? Icons.stop : Icons.arrow_upward,
+              size: isStop ? AppKeys.stopIcon : AppKeys.sendIcon,
+              color: fg,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Meta line after a completed turn: `23秒 · 4步 · 3.4万 tokens ›`
+/// All numbers tabular, units smaller + tertiary color (dsh spec).
+class _MetaLine extends StatelessWidget {
+  const _MetaLine({required this.tokens, required this.activeMs});
+
+  final int tokens;
+  final int activeMs;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final tertiary = scheme.onSurfaceVariant;
+
+    String fmtTokens(int n) {
+      if (n >= 10000) return '${(n / 10000).toStringAsFixed(1)}万';
+      return '$n';
+    }
+
+    String fmtMs(int ms) {
+      final s = (ms / 1000).round();
+      if (s < 60) return '$s秒';
+      return '${s ~/ 60}分${s % 60}秒';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Text.rich(
+        TextSpan(
+          style: TextStyle(
+            fontSize: 11,
+            fontFeatures: tabularNumbers,
+            color: tertiary,
+          ),
+          children: [
+            if (activeMs > 0) ...[
+              TextSpan(text: fmtMs(activeMs)),
+              TextSpan(
+                  text: ' · ',
+                  style: TextStyle(color: tertiary.withValues(alpha: .5))),
+            ],
+            if (tokens > 0) ...[
+              TextSpan(text: fmtTokens(tokens)),
+              TextSpan(
+                  text: ' tokens',
+                  style: TextStyle(fontSize: 10, color: tertiary.withValues(alpha: .7))),
+            ],
+            TextSpan(
+                text: ' ›',
+                style: TextStyle(color: tertiary.withValues(alpha: .5))),
+          ],
+        ),
+      ),
     );
   }
 }
