@@ -35,9 +35,13 @@ class _AppShellState extends State<AppShell> {
         // soft shadow; brand row + nav items inside.
         final scheme = Theme.of(context).colorScheme;
         final dark = scheme.brightness == Brightness.dark;
-        return Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
+        // SafeArea OUTSIDE the panel: the gradient still bleeds under the
+        // status bar, but the floating drawer must start below it (the
+        // first build overlapped the clock/app icons).
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
             children: [
               Container(
                 width: 264,
@@ -111,6 +115,7 @@ class _AppShellState extends State<AppShell> {
                 child: pages[_tab],
               ),
             ],
+            ),
           ),
         );
       }
