@@ -203,7 +203,7 @@ class _ZDrawerState extends ConsumerState<ZDrawer> {
                   Expanded(
                     child: InkWell(
                       borderRadius: BorderRadius.circular(12),
-                      onTap: () => _push(context, const DevicesPage()),
+                      onTap: () => _workspaceSheet(context),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
